@@ -47,7 +47,7 @@
         
         <div class="w-full bg-gradient-to-r from-[#b38728] via-[#d4af37] to-[#b38728] text-black font-bold py-2 mb-4 rounded-md border border-[#fcf6ba] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <marquee scrollamount="6" behavior="scroll" direction="left" class="text-sm uppercase tracking-widest px-4">
-                Selamat Datang di Portal E-Sertifikat | SCAG (Supply Chain Agile & Resilient) | Silakan Masukkan NIM Anda untuk Mengunduh Sertifikat
+                Selamat Datang di Portal E-Sertifikat | SCAG (Supply Chain Agile & Resilient) | Silakan Masukkan No. WhatsApp Anda untuk Mengunduh Sertifikat
             </marquee>
         </div>
 
@@ -59,8 +59,8 @@
             </div>
             
             <div class="mb-6">
-                <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide">Masukkan NIM Anda</label>
-                <input type="text" id="nimInput" class="w-full py-3 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-gray-100 text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500" placeholder="Ketik NIM di sini...">
+                <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide">Masukkan No. WhatsApp Anda</label>
+                <input type="text" id="nimInput" class="w-full py-3 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-gray-100 text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500" placeholder="Contoh: 081234567890">
             </div>
 
             <div id="resultBox" class="hidden mb-6 p-5 bg-[#222222] border border-[#d4af37] rounded-lg text-center transform transition-all">
@@ -84,8 +84,9 @@
         const errorMsg = document.getElementById('errorMsg');
 
         nimInput.addEventListener('input', function() {
-            let nim = this.value;
-            if(nim.length >= 3) {
+            let nim = this.value.trim();
+            // Mengecek jika input sudah mencapai 5 karakter atau lebih (karena nomor WA panjang)
+            if(nim.length >= 5) {
                 fetch(`/api/check-nim/${nim}`)
                     .then(response => response.json())
                     .then(data => {
@@ -97,7 +98,8 @@
                         } else {
                             resultBox.classList.add('hidden');
                             errorMsg.classList.remove('hidden');
-                            errorMsg.textContent = data.message;
+                            // Mengubah pesan error menjadi relevan dengan WA
+                            errorMsg.textContent = "Nomor WhatsApp tidak ditemukan di database kami.";
                         }
                     });
             } else {
