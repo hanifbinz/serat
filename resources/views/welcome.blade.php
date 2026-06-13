@@ -55,7 +55,7 @@
             
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-extrabold gold-gradient-text tracking-wide">PORTAL SERTIFIKAT</h2>
-                <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAG 2026</p>
+                <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
             </div>
             
             <div class="mb-6">
