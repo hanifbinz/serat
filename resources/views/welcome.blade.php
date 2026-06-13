@@ -47,12 +47,17 @@
         
         <div class="w-full bg-gradient-to-r from-[#b38728] via-[#d4af37] to-[#b38728] text-black font-bold py-2 mb-4 rounded-md border border-[#fcf6ba] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <marquee scrollamount="6" behavior="scroll" direction="left" class="text-sm uppercase tracking-widest px-4">
-                Selamat Datang di Portal E-Sertifikat | SCAG (Supply Chain Agile & Resilient) | Silakan Masukkan No. WhatsApp Anda untuk Mengunduh Sertifikat
+                Selamat Datang di Portal E-Sertifikat | SCAR (Supply Chain Agile & Resilient) | Silakan Masukkan No. WhatsApp Anda untuk Mengunduh Sertifikat
             </marquee>
         </div>
 
         <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full">
             
+            <div class="flex justify-center mb-6">
+                <img src="{{ asset('images/logo.png') }}" 
+                     alt="Logo SCAG" 
+                     class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+            </div>        
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-extrabold gold-gradient-text tracking-wide">PORTAL SERTIFIKAT</h2>
                 <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
