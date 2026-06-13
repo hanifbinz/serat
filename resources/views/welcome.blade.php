@@ -54,7 +54,7 @@
         <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full">
             
             <div class="flex justify-center mb-6">
-                <img src="{{ asset('images/logo.png') }}" 
+                <img src="{{ asset('images/logo1.png') }}" 
                      alt="Logo SCAG" 
                      class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
             </div>        
