@@ -21,5 +21,9 @@ Route::domain('han.majuterus.my.id')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         Route::post('/upload-data', [AdminController::class, 'uploadData'])->name('admin.upload-data');
         Route::post('/upload-template', [AdminController::class, 'uploadTemplate'])->name('admin.upload-template');
+        
+        // FITUR BARU: HAPUS DATA PESERTA & TEMPLATE
+        Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
+        Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
     });
 });

@@ -6,6 +6,7 @@ use App\Models\Participant;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // <-- Tambahan untuk menghapus file gambar
 
 class AdminController extends Controller
 {
@@ -73,5 +74,31 @@ class AdminController extends Controller
             ['value' => $path]
         );
         return back()->with('success', 'Template sertifikat berhasil diunggah.');
+    }
+
+    // --- FITUR BARU: HAPUS DATA & TEMPLATE ---
+
+    public function clearData()
+    {
+        // Menghapus semua data peserta dan reset nomor urut (ID) ke 1
+        Participant::truncate();
+        return back()->with('success', 'Semua data peserta berhasil dikosongkan!');
+    }
+
+    public function clearTemplate()
+    {
+        // Mencari data template di database
+        $setting = Setting::where('key', 'template_path')->first();
+        
+        if ($setting) {
+            // Menghapus file gambar fisiknya dari storage
+            if (Storage::exists($setting->value)) {
+                Storage::delete($setting->value);
+            }
+            // Menghapus record dari database
+            $setting->delete();
+        }
+
+        return back()->with('success', 'Template sertifikat berhasil dihapus!');
     }
 }
