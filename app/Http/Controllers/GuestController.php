@@ -6,6 +6,7 @@ use App\Models\Participant;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request; // <-- Tambahan untuk proses form
 
 class GuestController extends Controller
 {
@@ -23,14 +24,58 @@ class GuestController extends Controller
         return response()->json(['status' => 'error', 'message' => 'NIM tidak ditemukan.']);
     }
 
+    // --- FITUR BARU: HALAMAN & PROSES CHECK-IN ---
+
+    public function showCheckin(string $code)
+    {
+        $activeLink = Setting::where('key', 'active_checkin_link')->first();
+        
+        if (!$activeLink || $activeLink->value !== $code) {
+            return abort(404, 'Maaf, link absen ini sudah kadaluarsa atau tidak valid.');
+        }
+
+        return view('guest.checkin', compact('code'));
+    }
+
+    public function processCheckin(Request $request,string $code)
+    {
+        $activeLink = Setting::where('key', 'active_checkin_link')->first();
+        if (!$activeLink || $activeLink->value !== $code) {
+            return abort(404, 'Sesi absensi sudah ditutup.');
+        }
+
+        $request->validate(['nim' => 'required|string']);
+
+        $participant = Participant::where('nim', $request->nim)->first();
+
+        if (!$participant) {
+            return back()->with('error', 'Nomor WhatsApp Anda tidak terdaftar. Hubungi panitia.');
+        }
+
+        if ($participant->is_checked_in) {
+            return back()->with('success', 'Anda sudah melakukan Check-In sebelumnya. Silakan unduh sertifikat Anda.');
+        }
+
+        $participant->update(['is_checked_in' => true]);
+
+        return back()->with('success', 'Selamat, Check-In berhasil! Sertifikat Anda sudah bisa diunduh sekarang.');
+    }
+
+    // --- UPDATE: KUNCI DOWNLOAD ---
+
     public function download(string $nim)
     {
         $participant = Participant::where('nim', $nim)->firstOrFail();
+
+        // KUNCI: Tolak jika belum absen
+        if (!$participant->is_checked_in) {
+            return redirect('/')->with('error', 'Maaf, Anda belum melakukan Check-In kehadiran. Sertifikat terkunci.');
+        }
+
         $template = Setting::where('key', 'template_path')->first();
         
         $base64Image = null;
         if ($template && $template->value) {
-            // CARA BARU: Membaca file menggunakan facade Storage bawaan Laravel
             if (Storage::exists($template->value)) {
                 $ext = pathinfo($template->value, PATHINFO_EXTENSION);
                 $data = Storage::get($template->value);

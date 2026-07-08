@@ -115,6 +115,44 @@
                 </form>
                 @endif
             </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span class="bg-purple-100 text-purple-700 w-8 h-8 rounded-full flex items-center justify-center">3</span>
+                    Manajemen Presensi (Check-In)
+                </h2>
+
+                <p class="text-sm text-gray-600 mb-4">Fitur ini mengunci sertifikat. Peserta wajib mengisi form check-in agar bisa mengunduh sertifikatnya.</p>
+
+                @if($activeLink)
+                <div class="bg-purple-50 border border-purple-200 p-5 rounded-lg mb-4">
+                    <p class="text-sm font-bold text-purple-800 mb-2">🔴 Sesi Absensi Sedang Dibuka!</p>
+                    <p class="text-xs text-gray-600 mb-1">Berikan URL di bawah ini kepada peserta (atau jadikan QR Code di proyektor):</p>
+                    
+                    <div class="bg-white p-3 border border-gray-300 rounded text-center my-3 select-all">
+                        <a href="https://sertifikat.majuterus.my.id/checkin/{{ $activeLink->value }}" target="_blank" class="font-mono text-blue-600 font-bold break-all">
+                            https://sertifikat.majuterus.my.id/checkin/{{ $activeLink->value }}
+                        </a>
+                    </div>
+                    
+                    <form action="{{ route('admin.close-link') }}" method="POST" onsubmit="return confirm('Yakin ingin menutup sesi absen ini? Link akan langsung hangus.');">
+                        @csrf
+                        <button type="submit" class="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition-colors text-sm">
+                            Tutup Sesi Absensi
+                        </button>
+                    </form>
+                </div>
+                @else
+                <div class="bg-gray-50 border border-gray-200 p-5 rounded-lg text-center">
+                    <p class="text-sm text-gray-500 mb-4">Belum ada sesi absensi yang aktif. Sertifikat peserta saat ini terkunci.</p>
+                    <form action="{{ route('admin.generate-link') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="bg-purple-600 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+                            Buat Link Check-In Baru
+                        </button>
+                    </form>
+                </div>
+                @endif
+            </div>
         </div>
     </div>
 </body>

@@ -6,7 +6,8 @@ use App\Models\Participant;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; // <-- Tambahan untuk menghapus file gambar
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -42,7 +43,10 @@ class AdminController extends Controller
     {
         $participantsCount = Participant::count();
         $template = Setting::where('key', 'template_path')->first();
-        return view('admin.dashboard', compact('participantsCount', 'template'));
+        // Ambil link checkin yang sedang aktif
+        $activeLink = Setting::where('key', 'active_checkin_link')->first();
+        
+        return view('admin.dashboard', compact('participantsCount', 'template', 'activeLink'));
     }
 
     public function uploadData(Request $request)
@@ -76,7 +80,7 @@ class AdminController extends Controller
         return back()->with('success', 'Template sertifikat berhasil diunggah.');
     }
 
-    // --- FITUR BARU: HAPUS DATA & TEMPLATE ---
+    // --- FITUR HAPUS DATA & TEMPLATE ---
 
     public function clearData()
     {
@@ -100,5 +104,26 @@ class AdminController extends Controller
         }
 
         return back()->with('success', 'Template sertifikat berhasil dihapus!');
+    }
+
+    // --- FITUR BARU: URL DINAMIS CHECK-IN ---
+
+    public function generateLink()
+    {
+        // Membuat kode acak 5 karakter, contoh: scag-a1b2c
+        $code = 'scag-' . strtolower(Str::random(5));
+        
+        Setting::updateOrCreate(
+            ['key' => 'active_checkin_link'],
+            ['value' => $code]
+        );
+        return back()->with('success', 'Link Check-In Baru berhasil dibuat!');
+    }
+
+    public function closeLink()
+    {
+        // Menghapus link aktif, sehingga link sebelumnya hangus
+        Setting::where('key', 'active_checkin_link')->delete();
+        return back()->with('success', 'Sesi Check-In berhasil ditutup!');
     }
 }
