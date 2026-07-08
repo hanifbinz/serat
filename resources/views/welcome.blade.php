@@ -58,11 +58,23 @@
                      alt="Logo SCAG" 
                      class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
             </div>        
-            <div class="text-center mb-8">
+            
+            <div class="text-center mb-6">
                 <h2 class="text-3xl font-extrabold gold-gradient-text tracking-wide">PORTAL SERTIFIKAT</h2>
                 <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
             </div>
-            
+
+            @if(session('error'))
+                <div class="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-500/50 text-red-300 text-center text-sm font-bold shadow-lg tracking-wide">
+                    ⚠️ {{ session('error') }}
+                </div>
+            @endif
+
+            @if(session('success'))
+                <div class="mb-6 p-4 rounded-lg bg-green-900/30 border border-green-500/50 text-green-300 text-center text-sm font-bold shadow-lg tracking-wide">
+                    ✅ {{ session('success') }}
+                </div>
+            @endif
             <div class="mb-6">
                 <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide">Masukkan No. WhatsApp Anda</label>
                 <input type="text" id="nimInput" class="w-full py-3 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-gray-100 text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500" placeholder="Contoh: 081234567890">
