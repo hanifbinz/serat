@@ -53,7 +53,7 @@
     @endif
     
     <div class="nomor-sertifikat">
-        NOMOR: SCAR/2026/VI/{{ str_pad($participant->id, 3, '0', STR_PAD_LEFT) }}
+        NOMOR: {{ $prefix }}{{ str_pad($participant->id, 3, '0', STR_PAD_LEFT) }}
     </div>
 
     <div class="nama-peserta">

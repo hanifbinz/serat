@@ -64,7 +64,6 @@
                     </button>
                 </form>
 
-                <!-- TOMBOL KOSONGKAN DATA PESERTA -->
                 <form action="{{ route('admin.clear-data') }}" method="POST" class="mt-4" onsubmit="return confirm('Apakah Anda yakin ingin menghapus SEMUA data peserta? Nomor urut akan kembali ke 1.');">
                     @csrf
                     <button type="submit" class="w-full bg-red-50 text-red-600 font-bold py-2.5 px-4 rounded-lg border border-red-200 hover:bg-red-100 hover:text-red-700 transition-colors">
@@ -92,7 +91,7 @@
                 @endif
 
                 <div class="bg-gray-50 border border-gray-200 p-4 mb-4 text-sm text-gray-600 rounded-lg">
-                    Gunakan gambar resolusi lanskap A4 (misal: <strong>3508 x 2480 piksel</strong>) dengan format <strong>JPG</strong> atau <strong>PNG</strong>.
+                    Gunakan gambar resolusi lanskap A4 dengan format <strong>JPG</strong> atau <strong>PNG</strong>.
                 </div>
 
                 <form action="{{ route('admin.upload-template') }}" method="POST" enctype="multipart/form-data">
@@ -105,7 +104,6 @@
                     </button>
                 </form>
 
-                <!-- TOMBOL HAPUS TEMPLATE -->
                 @if($template)
                 <form action="{{ route('admin.clear-template') }}" method="POST" class="mt-4" onsubmit="return confirm('Apakah Anda yakin ingin menghapus template saat ini?');">
                     @csrf
@@ -115,7 +113,9 @@
                 </form>
                 @endif
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
+            
+            <!-- KARD 3: Manajemen Presensi -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
                     <span class="bg-purple-100 text-purple-700 w-8 h-8 rounded-full flex items-center justify-center">3</span>
                     Manajemen Presensi (Check-In)
@@ -136,7 +136,7 @@
                     
                     <form action="{{ route('admin.close-link') }}" method="POST" onsubmit="return confirm('Yakin ingin menutup sesi absen ini? Link akan langsung hangus.');">
                         @csrf
-                        <button type="submit" class="bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 transition-colors text-sm">
+                        <button type="submit" class="w-full bg-red-500 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-red-600 transition-colors text-sm">
                             Tutup Sesi Absensi
                         </button>
                     </form>
@@ -146,13 +146,41 @@
                     <p class="text-sm text-gray-500 mb-4">Belum ada sesi absensi yang aktif. Sertifikat peserta saat ini terkunci.</p>
                     <form action="{{ route('admin.generate-link') }}" method="POST">
                         @csrf
-                        <button type="submit" class="bg-purple-600 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
+                        <button type="submit" class="w-full bg-purple-600 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow-sm">
                             Buat Link Check-In Baru
                         </button>
                     </form>
                 </div>
                 @endif
             </div>
+
+            <!-- KARD 4: FORMAT NOMOR SERTIFIKAT (BARU) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-700 w-8 h-8 rounded-full flex items-center justify-center">4</span>
+                    Format Nomor Sertifikat
+                </h2>
+
+                <p class="text-sm text-gray-600 mb-4">Atur awalan teks untuk nomor seri sertifikat. Nomor urut/ID peserta akan ditambahkan secara otomatis di belakangnya.</p>
+
+                <form action="{{ route('admin.save-prefix') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Awalan Nomor (Prefix)</label>
+                        <input type="text" name="prefix" value="{{ $prefixValue }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50" placeholder="Contoh: SCAR/2026/VI/">
+                    </div>
+                    
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4 text-sm text-amber-800">
+                        Pratinjau Hasil: <br>
+                        <strong class="font-mono text-lg">{{ $prefixValue }}001</strong>
+                    </div>
+
+                    <button type="submit" class="w-full bg-amber-500 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-amber-600 transition-colors">
+                        Simpan Format Nomor
+                    </button>
+                </form>
+            </div>
+
         </div>
     </div>
 </body>

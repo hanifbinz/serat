@@ -32,5 +32,8 @@ Route::domain('han.majuterus.my.id')->group(function () {
         // Rute Manajemen Link Check-in
         Route::post('/generate-link', [AdminController::class, 'generateLink'])->name('admin.generate-link');
         Route::post('/close-link', [AdminController::class, 'closeLink'])->name('admin.close-link');
+
+        // --- RUTE BARU: Simpan Format Nomor Sertifikat ---
+        Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
     });
 });
