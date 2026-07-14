@@ -35,5 +35,12 @@ Route::domain('han.majuterus.my.id')->group(function () {
 
         // --- RUTE BARU: Simpan Format Nomor Sertifikat ---
         Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
+
+        // --- RUTE KHUSUS ADMINISTRATOR (MANAJEMEN USER) ---
+        Route::middleware('can:is-administrator')->group(function () {
+            Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('admin.users');
+            Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('admin.users.store');
+            Route::delete('/users/{user}', [\App\Http\Controllers\UserController::class, 'destroy'])->name('admin.users.destroy');
+        });
     });
 });

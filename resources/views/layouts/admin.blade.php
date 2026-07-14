@@ -27,10 +27,13 @@
                 </a>
                 
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Pengaturan</p>
-                <!-- Menu Baru: Manajemen User -->
-                <a href="#" class="block px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                
+                <!-- Menu Baru: Manajemen User (Dibatasi Gate) -->
+                @can('is-administrator')
+                <a href="{{ route('admin.users') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.users') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
                     <i class="fa-solid fa-users w-6"></i> Manajemen User
                 </a>
+                @endcan
             </nav>
         </div>
         <!-- Footer Sidebar -->
