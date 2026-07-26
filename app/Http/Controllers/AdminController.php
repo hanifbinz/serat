@@ -7,7 +7,6 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str; // Tambahan wajib untuk bikin teks acak
 
 class AdminController extends Controller
 {
@@ -38,10 +37,12 @@ class AdminController extends Controller
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefixValue = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
         
-        // Cek link dinamis yang aktif
-        $activeLink = Setting::where('key', 'active_claim_link')->first();
+        // --- INI YANG BARU: Cek status Saklar ON/OFF ---
+        $sessionStatus = Setting::where('key', 'session_status')->first();
+        $isOpen = $sessionStatus && $sessionStatus->value === 'open';
         
-        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue', 'activeLink'));
+        // Kita melempar variabel $isOpen ke dashboard
+        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue', 'isOpen'));
     }
 
     public function uploadData(Request $request)
@@ -89,17 +90,16 @@ class AdminController extends Controller
         return back()->with('success', 'Format Nomor Sertifikat berhasil diperbarui!');
     }
 
-    // --- FITUR BARU: GENERATOR LINK UNDUH DINAMIS ---
-    public function generateLink()
+    // --- SISTEM SAKLAR BUKA/TUTUP PORTAL ---
+    public function openSession()
     {
-        $code = 'scar-' . strtolower(Str::random(6)); // Menghasilkan teks seperti scar-a8b9xy
-        Setting::updateOrCreate(['key' => 'active_claim_link'], ['value' => $code]);
-        return back()->with('success', 'Sesi Unduh Dinamis berhasil DIBUKA!');
+        Setting::updateOrCreate(['key' => 'session_status'], ['value' => 'open']);
+        return back()->with('success', 'Portal Unduhan DIBUKA! Peserta sekarang bisa mengakses web.');
     }
 
-    public function closeLink()
+    public function closeSession()
     {
-        Setting::where('key', 'active_claim_link')->delete();
-        return back()->with('success', 'Sesi Unduh berhasil DITUTUP! Link tadi sudah otomatis hancur.');
+        Setting::updateOrCreate(['key' => 'session_status'], ['value' => 'closed']);
+        return back()->with('success', 'Portal Unduhan DITUTUP! Web utama kembali tergembok.');
     }
 }

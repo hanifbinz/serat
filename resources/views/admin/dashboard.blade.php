@@ -81,40 +81,40 @@
         @endif
     </div>
     
-<!-- KARD 3: Manajemen Link Unduh Dinamis -->
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+<!-- KARD 3: Sistem Saklar Portal Unduhan -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
         <h2 class="text-lg font-bold mb-4 flex items-center gap-3">
-            <span class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-link"></i></span>
-            Manajemen Link Unduhan
+            <span class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-toggle-on"></i></span>
+            Akses Portal Sertifikat
         </h2>
 
-        <p class="text-sm text-gray-600 mb-4">Akses unduh default tertutup. Buka sesi dan bagikan link ini ke grup WA agar peserta bisa mengunduh sertifikat mereka.</p>
+        <p class="text-sm text-gray-600 mb-5">Kontrol akses peserta ke <strong>sertifikat.majuterus.my.id</strong>. Bagikan link tersebut ke grup, lalu Buka/Tutup akses dari sini.</p>
 
-        @if(isset($activeLink) && $activeLink)
-        <div class="bg-purple-50 border border-purple-200 p-5 rounded-xl mb-4">
-            <p class="text-sm font-bold text-purple-800 mb-2 animate-pulse"><i class="fa-solid fa-circle-dot text-red-500 mr-1"></i> Sesi Unduh Terbuka!</p>
-            
-            <div class="bg-white p-3 border border-gray-300 rounded-lg text-center my-4 select-all shadow-inner">
-                <a href="https://sertifikat.majuterus.my.id/claim/{{ $activeLink->value }}" target="_blank" class="font-mono text-blue-600 font-bold break-all">
-                    https://sertifikat.majuterus.my.id/claim/{{ $activeLink->value }}
-                </a>
+        @if(isset($isOpen) && $isOpen)
+        <div class="bg-green-50 border border-green-200 p-6 rounded-xl text-center shadow-inner">
+            <div class="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold text-sm mb-4 animate-pulse">
+                <i class="fa-solid fa-circle-check mr-1"></i> PORTAL SEDANG TERBUKA
             </div>
+            <p class="text-sm text-green-800 mb-6">Peserta saat ini <strong>BISA</strong> mengunduh sertifikat.</p>
             
-            <form action="{{ route('admin.close-link') }}" method="POST" onsubmit="return confirm('Yakin ingin menutup dan menghanguskan link ini?');">
+            <form action="{{ route('admin.close-session') }}" method="POST" onsubmit="return confirm('Yakin ingin menutup akses portal?');">
                 @csrf
                 <button type="submit" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md">
-                    <i class="fa-solid fa-lock mr-2"></i> Tutup & Hanguskan Link
+                    <i class="fa-solid fa-lock mr-2"></i> Tutup Portal Sekarang
                 </button>
             </form>
         </div>
         @else
-        <div class="bg-gray-50 border border-gray-200 p-6 rounded-xl text-center">
-            <div class="text-gray-400 mb-3"><i class="fa-solid fa-lock text-4xl"></i></div>
-            <p class="text-sm text-gray-500 mb-5">Portal unduhan saat ini ditutup total.</p>
-            <form action="{{ route('admin.generate-link') }}" method="POST">
+        <div class="bg-gray-50 border border-gray-200 p-6 rounded-xl text-center shadow-inner">
+            <div class="inline-block bg-gray-200 text-gray-600 px-4 py-2 rounded-full font-bold text-sm mb-4">
+                <i class="fa-solid fa-lock mr-1"></i> PORTAL TERTUTUP (DIGEMBOK)
+            </div>
+            <p class="text-sm text-gray-500 mb-6">Peserta saat ini <strong>TIDAK BISA</strong> mengunduh sertifikat.</p>
+            
+            <form action="{{ route('admin.open-session') }}" method="POST">
                 @csrf
-                <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow-md">
-                    <i class="fa-solid fa-magic mr-2"></i> Buat Link Unduh Baru
+                <button type="submit" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-colors shadow-md">
+                    <i class="fa-solid fa-unlock-keyhole mr-2"></i> Buka Portal Sekarang
                 </button>
             </form>
         </div>
