@@ -10,16 +10,18 @@ use Illuminate\Http\Request;
 
 class GuestController extends Controller
 {
-    // 1. Menampilkan halaman depan sesuai status portal (Buka/Tutup)
     public function index()
     {
         $sessionStatus = Setting::where('key', 'session_status')->first();
         $isOpen = $sessionStatus && $sessionStatus->value === 'open';
         
-        return view('welcome', compact('isOpen'));
+        // --- BARU: Tarik data judul acara dan lempar ke View ---
+        $titleSetting = Setting::where('key', 'seminar_title')->first();
+        $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
+        
+        return view('welcome', compact('isOpen', 'seminarTitle'));
     }
 
-    // 2. Fungsi untuk dipanggil JavaScript (Mengecek nama secara live)
     public function checkNim(string $nim)
     {
         $participant = Participant::where('nim', $nim)->first();
@@ -29,7 +31,6 @@ class GuestController extends Controller
         return response()->json(['status' => 'error', 'message' => 'NIM tidak ditemukan.']);
     }
 
-    // 3. Proses validasi saat tombol unduh ditekan
     public function processClaim(Request $request)
     {
         $sessionStatus = Setting::where('key', 'session_status')->first();
@@ -44,28 +45,22 @@ class GuestController extends Controller
             return back()->with('error', 'Nomor WhatsApp Anda tidak terdaftar di database.');
         }
 
-        // Buat token unduh sekali pakai
         $downloadToken = md5($participant->nim . env('APP_KEY', 'rahasia') . time());
         session(['download_token_' . $participant->id => $downloadToken]);
 
-        // Arahkan ke rute eksekusi PDF
         return redirect()->route('download.token', ['token' => $downloadToken, 'id' => $participant->id]);
     }
 
-    // 4. Eksekusi pembuatan dan pengunduhan PDF
     public function downloadByToken(string $token, int $id)
     {
         $participant = Participant::findOrFail($id);
 
-        // Cek apakah token valid
         if (session('download_token_' . $participant->id) !== $token) {
             return redirect('/')->with('error', 'Akses unduh tidak valid atau sudah kedaluwarsa.');
         }
 
-        // Hapus token agar tidak bisa digunakan ulang (Sekali pakai)
         session()->forget('download_token_' . $participant->id);
 
-        // Ambil template dan ubah ke Base64
         $template = Setting::where('key', 'template_path')->first();
         $base64Image = null;
         
@@ -77,11 +72,9 @@ class GuestController extends Controller
             }
         }
 
-        // Ambil format prefix nomor sertifikat
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefix = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
 
-        // Render PDF
         $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                   ->loadView('certificate', compact('participant', 'base64Image', 'prefix'))
                   ->setPaper('a4', 'landscape');

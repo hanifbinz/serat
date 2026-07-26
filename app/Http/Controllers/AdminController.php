@@ -34,15 +34,18 @@ class AdminController extends Controller
     {
         $participantsCount = Participant::count();
         $template = Setting::where('key', 'template_path')->first();
+        
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefixValue = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
         
-        // --- INI YANG BARU: Cek status Saklar ON/OFF ---
         $sessionStatus = Setting::where('key', 'session_status')->first();
         $isOpen = $sessionStatus && $sessionStatus->value === 'open';
+
+        // --- BARU: Tarik data judul seminar ---
+        $titleSetting = Setting::where('key', 'seminar_title')->first();
+        $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
         
-        // Kita melempar variabel $isOpen ke dashboard
-        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue', 'isOpen'));
+        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue', 'isOpen', 'seminarTitle'));
     }
 
     public function uploadData(Request $request)
@@ -50,11 +53,8 @@ class AdminController extends Controller
         $request->validate(['file' => 'required|mimes:csv,txt']);
         $file = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($file));
-        
         foreach ($data as $row) {
-            if(isset($row[0]) && isset($row[1])){
-                Participant::updateOrCreate(['nim' => $row[0]], ['name' => $row[1]]);
-            }
+            if(isset($row[0]) && isset($row[1])) { Participant::updateOrCreate(['nim' => $row[0]], ['name' => $row[1]]); }
         }
         return back()->with('success', 'Data peserta berhasil diunggah.');
     }
@@ -67,11 +67,7 @@ class AdminController extends Controller
         return back()->with('success', 'Template sertifikat berhasil diunggah.');
     }
 
-    public function clearData()
-    {
-        Participant::truncate();
-        return back()->with('success', 'Semua data peserta berhasil dikosongkan!');
-    }
+    public function clearData() { Participant::truncate(); return back()->with('success', 'Data berhasil dikosongkan!'); }
 
     public function clearTemplate()
     {
@@ -80,7 +76,7 @@ class AdminController extends Controller
             if (Storage::exists($setting->value)) Storage::delete($setting->value);
             $setting->delete();
         }
-        return back()->with('success', 'Template sertifikat berhasil dihapus!');
+        return back()->with('success', 'Template dihapus!');
     }
 
     public function savePrefix(Request $request)
@@ -90,16 +86,23 @@ class AdminController extends Controller
         return back()->with('success', 'Format Nomor Sertifikat berhasil diperbarui!');
     }
 
-    // --- SISTEM SAKLAR BUKA/TUTUP PORTAL ---
     public function openSession()
     {
         Setting::updateOrCreate(['key' => 'session_status'], ['value' => 'open']);
-        return back()->with('success', 'Portal Unduhan DIBUKA! Peserta sekarang bisa mengakses web.');
+        return back()->with('success', 'Portal Unduhan DIBUKA!');
     }
 
     public function closeSession()
     {
         Setting::updateOrCreate(['key' => 'session_status'], ['value' => 'closed']);
-        return back()->with('success', 'Portal Unduhan DITUTUP! Web utama kembali tergembok.');
+        return back()->with('success', 'Portal Unduhan DITUTUP!');
+    }
+
+    // --- BARU: Fungsi Simpan Judul Seminar ---
+    public function saveSeminarTitle(Request $request)
+    {
+        $request->validate(['title' => 'required|string|max:255']);
+        Setting::updateOrCreate(['key' => 'seminar_title'], ['value' => $request->title]);
+        return back()->with('success', 'Judul Seminar berhasil diperbarui!');
     }
 }

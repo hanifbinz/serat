@@ -81,7 +81,7 @@
         @endif
     </div>
     
-<!-- KARD 3: Sistem Saklar Portal Unduhan -->
+    <!-- KARD 3: Sistem Saklar Portal Unduhan -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
         <h2 class="text-lg font-bold mb-4 flex items-center gap-3">
             <span class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-toggle-on"></i></span>
@@ -121,7 +121,7 @@
         @endif
     </div>
 
-    <!-- KARD 3 (Baru): FORMAT NOMOR -->
+    <!-- KARD 4 (Lama): FORMAT NOMOR -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold mb-4 flex items-center gap-3">
             <span class="bg-amber-100 text-amber-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-hashtag"></i></span>
@@ -144,6 +144,28 @@
 
             <button type="submit" class="w-full bg-amber-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-amber-600 transition-colors shadow-md">
                 <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Format
+            </button>
+        </form>
+    </div>
+
+    <!-- KARD 5 (Baru): JUDUL ACARA -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-3">
+            <span class="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-text-width"></i></span>
+            Judul / Nama Acara
+        </h2>
+
+        <p class="text-sm text-gray-600 mb-5">Ubah teks statis acara agar bisa dipakai untuk event berbeda di masa depan.</p>
+
+        <form action="{{ route('admin.save-seminar-title') }}" method="POST">
+            @csrf
+            <div class="mb-5">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Acara</label>
+                <input type="text" name="title" value="{{ $seminarTitle ?? 'SCAR 2026' }}" required placeholder="Contoh: SEMINAR IT 2027" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-gray-50 transition-all">
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
+                <i class="fa-solid fa-save mr-2"></i> Simpan Judul Acara
             </button>
         </form>
     </div>

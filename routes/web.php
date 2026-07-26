@@ -8,11 +8,7 @@ use App\Http\Controllers\UserController;
 // --- DOMAIN PESERTA ---
 Route::domain('sertifikat.majuterus.my.id')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->name('home');
-    
-    // Rute API untuk cek nama real-time via AJAX (JavaScript)
     Route::get('/api/check-nim/{nim}', [GuestController::class, 'checkNim']); 
-    
-    // Rute proses unduh dengan sistem token aman
     Route::post('/claim', [GuestController::class, 'processClaim'])->name('claim.process');
     Route::get('/download-file/{token}/{id}', [GuestController::class, 'downloadByToken'])->name('download.token');
 });
@@ -31,11 +27,12 @@ Route::domain('han.majuterus.my.id')->group(function () {
         Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
         Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
         
-        // Rute Sistem Buka/Tutup Portal (ON/OFF)
         Route::post('/open-session', [AdminController::class, 'openSession'])->name('admin.open-session');
         Route::post('/close-session', [AdminController::class, 'closeSession'])->name('admin.close-session');
-        
         Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
+        
+        // --- BARU: Rute Simpan Judul Seminar ---
+        Route::post('/save-seminar-title', [AdminController::class, 'saveSeminarTitle'])->name('admin.save-seminar-title');
 
         Route::middleware('can:is-administrator')->group(function () {
             Route::get('/users', [UserController::class, 'index'])->name('admin.users');

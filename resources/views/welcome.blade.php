@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal E-Sertifikat - SCAG</title>
+    <title>Portal E-Sertifikat - {{ $seminarTitle ?? 'Acara' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -41,19 +41,20 @@
         
         <div class="w-full bg-gradient-to-r from-[#b38728] via-[#d4af37] to-[#b38728] text-black font-bold py-2 mb-4 rounded-md border border-[#fcf6ba] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <marquee scrollamount="6" behavior="scroll" direction="left" class="text-sm uppercase tracking-widest px-4">
-                Selamat Datang di Portal E-Sertifikat | SCAR (Supply Chain Agile & Resilient) | Silakan Masukkan No. WhatsApp Anda untuk Mengunduh Sertifikat
+                Selamat Datang di Portal E-Sertifikat | {{ $seminarTitle ?? 'SCAR 2026' }} | Silakan Masukkan No. WhatsApp Anda untuk Mengunduh Sertifikat
             </marquee>
         </div>
 
         <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full relative overflow-hidden">
             
             <div class="flex justify-center mb-6">
-                <img src="{{ asset('images/logo1.png') }}" alt="Logo SCAG" class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                <img src="{{ asset('images/logo1.png') }}" alt="Logo Acara" class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
             </div>        
             
             <div class="text-center mb-6">
                 <h2 class="text-3xl font-extrabold gold-gradient-text tracking-wide">PORTAL SERTIFIKAT</h2>
-                <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
+                <!-- Sub Judul Dinamis -->
+                <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">{{ $seminarTitle ?? 'SCAR 2026' }}</p>
             </div>
 
             @if(session('error'))
@@ -62,9 +63,7 @@
                 </div>
             @endif
 
-            <!-- LOGIKA ON/OFF PORTAL -->
             @if(isset($isOpen) && $isOpen)
-                <!-- Form Utama dengan JS Real-time -->
                 <form action="{{ route('claim.process') }}" method="POST">
                     @csrf
                     <div class="mb-6">
@@ -72,12 +71,10 @@
                         <input type="text" id="nimInput" name="nim" required autocomplete="off" class="w-full py-4 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-[#fcf6ba] text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500 tracking-widest" placeholder="Contoh: 081234567890">
                     </div>
 
-                    <!-- Kotak Hasil (Disembunyikan secara default, muncul jika WA valid) -->
                     <div id="resultBox" class="hidden mb-6 p-5 bg-[#222222] border border-[#d4af37] rounded-lg text-center transform transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
                         <p class="text-sm text-gray-400 mb-1">Sertifikat atas nama:</p>
                         <p id="nameOutput" class="text-2xl font-bold text-[#fcf6ba] mb-5 uppercase tracking-wide"></p>
                         
-                        <!-- Tombol ini mensubmit form untuk mendapatkan PDF -->
                         <button type="submit" class="w-full text-center gold-btn font-extrabold py-4 px-4 rounded-lg transition-all transform hover:scale-105 uppercase tracking-wider text-sm">
                             <i class="fa-solid fa-cloud-arrow-down mr-2"></i> Unduh File PDF
                         </button>
@@ -86,7 +83,6 @@
                     <p id="errorMsg" class="hidden text-red-400 text-sm text-center bg-red-900 bg-opacity-20 p-3 rounded border border-red-800/50"></p>
                 </form>
 
-                <!-- Script JS untuk mengintip nama dari database -->
                 <script>
                     const nimInput = document.getElementById('nimInput');
                     const resultBox = document.getElementById('resultBox');
@@ -116,7 +112,6 @@
                     });
                 </script>
             @else
-                <!-- Tampilan Jika Portal Sedang Digembok / Ditutup oleh Admin -->
                 <div class="p-6 bg-[#222222] border border-gray-700 rounded-lg text-center transform transition-all">
                     <i class="fa-solid fa-lock text-5xl text-gray-500 mb-4"></i>
                     <h3 class="text-lg font-bold text-[#fcf6ba] mb-2 uppercase tracking-widest">Portal Tertutup</h3>
