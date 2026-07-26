@@ -7,26 +7,19 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str; // Tambahan wajib untuk bikin teks acak
 
 class AdminController extends Controller
 {
-    public function showLogin()
-    {
-        return view('admin.login');
-    }
-
+    public function showLogin() { return view('admin.login'); }
+    
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
+        $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required']]);
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             return redirect()->intended('admin/dashboard');
         }
-
         return back()->withErrors(['email' => 'Email atau password salah.']);
     }
 
@@ -42,28 +35,24 @@ class AdminController extends Controller
     {
         $participantsCount = Participant::count();
         $template = Setting::where('key', 'template_path')->first();
-        
-        // --- BARU: Ambil format nomor saat ini (Default: SCAR/2026/VI/) ---
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefixValue = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
         
-        // activeLink dihapus dari compact
-        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue'));
+        // Cek link dinamis yang aktif
+        $activeLink = Setting::where('key', 'active_claim_link')->first();
+        
+        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue', 'activeLink'));
     }
 
     public function uploadData(Request $request)
     {
         $request->validate(['file' => 'required|mimes:csv,txt']);
         $file = $request->file('file')->getRealPath();
-        
         $data = array_map('str_getcsv', file($file));
         
         foreach ($data as $row) {
             if(isset($row[0]) && isset($row[1])){
-                Participant::updateOrCreate(
-                    ['nim' => $row[0]],
-                    ['name' => $row[1]]
-                );
+                Participant::updateOrCreate(['nim' => $row[0]], ['name' => $row[1]]);
             }
         }
         return back()->with('success', 'Data peserta berhasil diunggah.');
@@ -73,11 +62,7 @@ class AdminController extends Controller
     {
         $request->validate(['template' => 'required|image|mimes:jpeg,png,jpg|max:2048']);
         $path = $request->file('template')->store('public/templates');
-        
-        Setting::updateOrCreate(
-            ['key' => 'template_path'],
-            ['value' => $path]
-        );
+        Setting::updateOrCreate(['key' => 'template_path'], ['value' => $path]);
         return back()->with('success', 'Template sertifikat berhasil diunggah.');
     }
 
@@ -90,29 +75,31 @@ class AdminController extends Controller
     public function clearTemplate()
     {
         $setting = Setting::where('key', 'template_path')->first();
-        
         if ($setting) {
-            if (Storage::exists($setting->value)) {
-                Storage::delete($setting->value);
-            }
+            if (Storage::exists($setting->value)) Storage::delete($setting->value);
             $setting->delete();
         }
-
         return back()->with('success', 'Template sertifikat berhasil dihapus!');
     }
 
-    // (Fungsi generateLink dan closeLink dihapus dari sini)
-
-    // --- FITUR BARU: Simpan Awalan Nomor ---
     public function savePrefix(Request $request)
     {
         $request->validate(['prefix' => 'required|string']);
-        
-        Setting::updateOrCreate(
-            ['key' => 'certificate_prefix'],
-            ['value' => $request->prefix]
-        );
-        
+        Setting::updateOrCreate(['key' => 'certificate_prefix'], ['value' => $request->prefix]);
         return back()->with('success', 'Format Nomor Sertifikat berhasil diperbarui!');
+    }
+
+    // --- FITUR BARU: GENERATOR LINK UNDUH DINAMIS ---
+    public function generateLink()
+    {
+        $code = 'scar-' . strtolower(Str::random(6)); // Menghasilkan teks seperti scar-a8b9xy
+        Setting::updateOrCreate(['key' => 'active_claim_link'], ['value' => $code]);
+        return back()->with('success', 'Sesi Unduh Dinamis berhasil DIBUKA!');
+    }
+
+    public function closeLink()
+    {
+        Setting::where('key', 'active_claim_link')->delete();
+        return back()->with('success', 'Sesi Unduh berhasil DITUTUP! Link tadi sudah otomatis hancur.');
     }
 }

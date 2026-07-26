@@ -81,7 +81,45 @@
         @endif
     </div>
     
-    <!-- (KARD 3: Manajemen Presensi DIHAPUS) -->
+<!-- KARD 3: Manajemen Link Unduh Dinamis -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-3">
+            <span class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fa-solid fa-link"></i></span>
+            Manajemen Link Unduhan
+        </h2>
+
+        <p class="text-sm text-gray-600 mb-4">Akses unduh default tertutup. Buka sesi dan bagikan link ini ke grup WA agar peserta bisa mengunduh sertifikat mereka.</p>
+
+        @if(isset($activeLink) && $activeLink)
+        <div class="bg-purple-50 border border-purple-200 p-5 rounded-xl mb-4">
+            <p class="text-sm font-bold text-purple-800 mb-2 animate-pulse"><i class="fa-solid fa-circle-dot text-red-500 mr-1"></i> Sesi Unduh Terbuka!</p>
+            
+            <div class="bg-white p-3 border border-gray-300 rounded-lg text-center my-4 select-all shadow-inner">
+                <a href="https://sertifikat.majuterus.my.id/claim/{{ $activeLink->value }}" target="_blank" class="font-mono text-blue-600 font-bold break-all">
+                    https://sertifikat.majuterus.my.id/claim/{{ $activeLink->value }}
+                </a>
+            </div>
+            
+            <form action="{{ route('admin.close-link') }}" method="POST" onsubmit="return confirm('Yakin ingin menutup dan menghanguskan link ini?');">
+                @csrf
+                <button type="submit" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md">
+                    <i class="fa-solid fa-lock mr-2"></i> Tutup & Hanguskan Link
+                </button>
+            </form>
+        </div>
+        @else
+        <div class="bg-gray-50 border border-gray-200 p-6 rounded-xl text-center">
+            <div class="text-gray-400 mb-3"><i class="fa-solid fa-lock text-4xl"></i></div>
+            <p class="text-sm text-gray-500 mb-5">Portal unduhan saat ini ditutup total.</p>
+            <form action="{{ route('admin.generate-link') }}" method="POST">
+                @csrf
+                <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow-md">
+                    <i class="fa-solid fa-magic mr-2"></i> Buat Link Unduh Baru
+                </button>
+            </form>
+        </div>
+        @endif
+    </div>
 
     <!-- KARD 3 (Baru): FORMAT NOMOR -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

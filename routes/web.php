@@ -7,10 +7,11 @@ use App\Http\Controllers\AdminController;
 // --- DOMAIN PESERTA ---
 Route::domain('sertifikat.majuterus.my.id')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->name('home');
-    Route::get('/api/check-nim/{nim}', [GuestController::class, 'checkNim']);
-    Route::get('/download-sertifikat/{nim}', [GuestController::class, 'download'])->name('download');
     
-    // (Rute checkin dihapus)
+    // Rute Link Unduh Dinamis
+    Route::get('/claim/{code}', [GuestController::class, 'showClaimForm'])->name('claim.form');
+    Route::post('/claim/{code}', [GuestController::class, 'processClaim']);
+    Route::get('/download-file/{token}/{id}', [GuestController::class, 'downloadByToken'])->name('download.token');
 });
 
 // --- DOMAIN ADMIN ---
@@ -27,12 +28,12 @@ Route::domain('han.majuterus.my.id')->group(function () {
         Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
         Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
         
-        // (Rute generate-link dan close-link dihapus)
+        // Rute Generator Link Dinamis
+        Route::post('/generate-link', [AdminController::class, 'generateLink'])->name('admin.generate-link');
+        Route::post('/close-link', [AdminController::class, 'closeLink'])->name('admin.close-link');
 
-        // --- RUTE BARU: Simpan Format Nomor Sertifikat ---
         Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
 
-        // --- RUTE KHUSUS ADMINISTRATOR (MANAJEMEN USER) ---
         Route::middleware('can:is-administrator')->group(function () {
             Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('admin.users');
             Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('admin.users.store');

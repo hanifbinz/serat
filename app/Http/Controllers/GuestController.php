@@ -6,30 +6,56 @@ use App\Models\Participant;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 
 class GuestController extends Controller
 {
+    // 1. Jika buka web utama tanpa link, otomatis ke halaman "Terkunci"
     public function index()
     {
-        return view('welcome');
+        return view('welcome', ['code' => null]);
     }
 
-    public function checkNim(string $nim)
+    // 2. Jika link valid, tampilkan form unduh
+    public function showClaimForm(string $code)
     {
-        $participant = Participant::where('nim', $nim)->first();
-        if ($participant) {
-            return response()->json(['status' => 'success', 'name' => $participant->name]);
+        $activeLink = Setting::where('key', 'active_claim_link')->first();
+        if (!$activeLink || $activeLink->value !== $code) {
+            return redirect('/')->with('error', 'Maaf, link unduh tidak valid atau sesi sudah ditutup oleh panitia.');
         }
-        return response()->json(['status' => 'error', 'message' => 'NIM tidak ditemukan.']);
+        return view('welcome', compact('code'));
     }
 
-    // Fungsi showCheckin dan processCheckin sudah dihapus sepenuhnya
-
-    public function download(string $nim)
+    // 3. Proses form jika nomor WA dimasukkan
+    public function processClaim(Request $request, string $code)
     {
-        $participant = Participant::where('nim', $nim)->firstOrFail();
+        $activeLink = Setting::where('key', 'active_claim_link')->first();
+        if (!$activeLink || $activeLink->value !== $code) {
+            return redirect('/')->with('error', 'Sesi unduh sudah ditutup.');
+        }
 
-        // --- PENGUNCI CHECK-IN SUDAH DIHAPUS DARI SINI ---
+        $request->validate(['nim' => 'required|string']);
+        $participant = Participant::where('nim', $request->nim)->first();
+
+        if (!$participant) {
+            return back()->with('error', 'Nomor WhatsApp Anda tidak terdaftar di database.');
+        }
+
+        // Buat token sekali pakai untuk mengunduh
+        $downloadToken = md5($participant->nim . $code . env('APP_KEY', 'rahasia'));
+        session(['download_token_' . $participant->id => $downloadToken]);
+
+        return redirect()->route('download.token', ['token' => $downloadToken, 'id' => $participant->id]);
+    }
+
+    // 4. Unduh PDF final jika token cocok
+    public function downloadByToken(string $token, int $id)
+    {
+        $participant = Participant::findOrFail($id);
+
+        if (session('download_token_' . $participant->id) !== $token) {
+            return redirect('/')->with('error', 'Akses unduh tidak valid atau sudah kedaluwarsa.');
+        }
 
         $template = Setting::where('key', 'template_path')->first();
         
@@ -42,11 +68,9 @@ class GuestController extends Controller
             }
         }
 
-        // --- BARU: Ambil Prefix Sertifikat ---
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefix = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
 
-        // Lempar variabel $prefix ke view
         $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                   ->loadView('certificate', compact('participant', 'base64Image', 'prefix'))
                   ->setPaper('a4', 'landscape');

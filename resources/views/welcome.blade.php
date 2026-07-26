@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal E-Sertifikat - SCAG</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Desain Background Gelap dengan Gradasi Emas Tipis di Sudut */
         body {
@@ -51,7 +52,7 @@
             </marquee>
         </div>
 
-        <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full">
+        <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full relative overflow-hidden">
             
             <div class="flex justify-center mb-6">
                 <img src="{{ asset('images/logo1.png') }}" 
@@ -64,6 +65,7 @@
                 <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
             </div>
 
+            <!-- Tempat Notifikasi Error / Success -->
             @if(session('error'))
                 <div class="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-500/50 text-red-300 text-center text-sm font-bold shadow-lg tracking-wide">
                     ⚠️ {{ session('error') }}
@@ -75,55 +77,34 @@
                     ✅ {{ session('success') }}
                 </div>
             @endif
-            <div class="mb-6">
-                <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide">Masukkan No. WhatsApp Anda</label>
-                <input type="text" id="nimInput" class="w-full py-3 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-gray-100 text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500" placeholder="Contoh: 081234567890">
-            </div>
 
-            <div id="resultBox" class="hidden mb-6 p-5 bg-[#222222] border border-[#d4af37] rounded-lg text-center transform transition-all">
-                <p class="text-sm text-gray-400 mb-1">Sertifikat atas nama:</p>
-                <p id="nameOutput" class="text-2xl font-bold text-[#fcf6ba] mb-5 uppercase tracking-wide"></p>
-                <a id="downloadBtn" href="#" class="inline-block w-full text-center gold-btn font-bold py-3 px-4 rounded transition-all transform hover:scale-105 uppercase tracking-wider text-sm">
-                    Unduh File PDF
-                </a>
-            </div>
 
-            <p id="errorMsg" class="hidden text-red-400 text-sm text-center bg-red-900 bg-opacity-20 p-3 rounded border border-red-800/50"></p>
+            <!-- LOGIKA LINK DINAMIS: TAMPILKAN FORM ATAU GEMBOK -->
+            @if(isset($code) && $code != null)
+                <!-- Tampilan Jika Link Valid -->
+                <form action="{{ url('/claim/' . $code) }}" method="POST">
+                    @csrf
+                    <div class="mb-6">
+                        <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide text-center">Masukkan No. WhatsApp Anda</label>
+                        <input type="text" name="nim" required class="w-full py-4 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-[#fcf6ba] text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500 tracking-widest" placeholder="Contoh: 081234567890">
+                    </div>
+
+                    <button type="submit" class="w-full text-center gold-btn font-extrabold py-4 px-4 rounded-lg transition-all transform hover:scale-105 uppercase tracking-wider text-sm">
+                        <i class="fa-solid fa-cloud-arrow-down mr-2"></i> Verifikasi & Unduh
+                    </button>
+                </form>
+            @else
+                <!-- Tampilan Jika Buka Link Tanpa Code (Nyasar / Sesi Ditutup) -->
+                <div class="p-6 bg-[#222222] border border-gray-700 rounded-lg text-center transform transition-all">
+                    <i class="fa-solid fa-lock text-5xl text-gray-500 mb-4"></i>
+                    <h3 class="text-lg font-bold text-[#fcf6ba] mb-2 uppercase tracking-widest">Portal Tertutup</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Sesi unduhan tidak aktif. Gunakan <strong>Link Resmi</strong> yang diberikan oleh panitia.</p>
+                </div>
+            @endif
+
         </div>
 
     </div>
 
-    <script>
-        const nimInput = document.getElementById('nimInput');
-        const resultBox = document.getElementById('resultBox');
-        const nameOutput = document.getElementById('nameOutput');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const errorMsg = document.getElementById('errorMsg');
-
-        nimInput.addEventListener('input', function() {
-            let nim = this.value.trim();
-            // Mengecek jika input sudah mencapai 5 karakter atau lebih (karena nomor WA panjang)
-            if(nim.length >= 5) {
-                fetch(`/api/check-nim/${nim}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.status === 'success') {
-                            resultBox.classList.remove('hidden');
-                            errorMsg.classList.add('hidden');
-                            nameOutput.textContent = data.name;
-                            downloadBtn.href = `/download-sertifikat/${nim}`;
-                        } else {
-                            resultBox.classList.add('hidden');
-                            errorMsg.classList.remove('hidden');
-                            // Mengubah pesan error menjadi relevan dengan WA
-                            errorMsg.textContent = "Nomor WhatsApp tidak ditemukan di database kami.";
-                        }
-                    });
-            } else {
-                resultBox.classList.add('hidden');
-                errorMsg.classList.add('hidden');
-            }
-        });
-    </script>
 </body>
 </html>
