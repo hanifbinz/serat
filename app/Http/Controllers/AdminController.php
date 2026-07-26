@@ -7,7 +7,6 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -43,13 +42,13 @@ class AdminController extends Controller
     {
         $participantsCount = Participant::count();
         $template = Setting::where('key', 'template_path')->first();
-        $activeLink = Setting::where('key', 'active_checkin_link')->first();
         
         // --- BARU: Ambil format nomor saat ini (Default: SCAR/2026/VI/) ---
         $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
         $prefixValue = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
         
-        return view('admin.dashboard', compact('participantsCount', 'template', 'activeLink', 'prefixValue'));
+        // activeLink dihapus dari compact
+        return view('admin.dashboard', compact('participantsCount', 'template', 'prefixValue'));
     }
 
     public function uploadData(Request $request)
@@ -102,22 +101,7 @@ class AdminController extends Controller
         return back()->with('success', 'Template sertifikat berhasil dihapus!');
     }
 
-    public function generateLink()
-    {
-        $code = 'scag-' . strtolower(Str::random(5));
-        
-        Setting::updateOrCreate(
-            ['key' => 'active_checkin_link'],
-            ['value' => $code]
-        );
-        return back()->with('success', 'Link Check-In Baru berhasil dibuat!');
-    }
-
-    public function closeLink()
-    {
-        Setting::where('key', 'active_checkin_link')->delete();
-        return back()->with('success', 'Sesi Check-In berhasil ditutup!');
-    }
+    // (Fungsi generateLink dan closeLink dihapus dari sini)
 
     // --- FITUR BARU: Simpan Awalan Nomor ---
     public function savePrefix(Request $request)

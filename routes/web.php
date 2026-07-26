@@ -10,9 +10,7 @@ Route::domain('sertifikat.majuterus.my.id')->group(function () {
     Route::get('/api/check-nim/{nim}', [GuestController::class, 'checkNim']);
     Route::get('/download-sertifikat/{nim}', [GuestController::class, 'download'])->name('download');
     
-    // Rute Check-in Mandiri dengan Kode Dinamis
-    Route::get('/checkin/{code}', [GuestController::class, 'showCheckin'])->name('checkin');
-    Route::post('/checkin/{code}', [GuestController::class, 'processCheckin']);
+    // (Rute checkin dihapus)
 });
 
 // --- DOMAIN ADMIN ---
@@ -29,9 +27,7 @@ Route::domain('han.majuterus.my.id')->group(function () {
         Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
         Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
         
-        // Rute Manajemen Link Check-in
-        Route::post('/generate-link', [AdminController::class, 'generateLink'])->name('admin.generate-link');
-        Route::post('/close-link', [AdminController::class, 'closeLink'])->name('admin.close-link');
+        // (Rute generate-link dan close-link dihapus)
 
         // --- RUTE BARU: Simpan Format Nomor Sertifikat ---
         Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
