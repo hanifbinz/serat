@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Desain Background Gelap dengan Gradasi Emas Tipis di Sudut */
         body {
             background-color: #121212;
             background-image: 
@@ -16,21 +15,15 @@
             color: #f3f4f6;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* Teks dengan Warna Gradasi Emas */
         .gold-gradient-text {
             background: linear-gradient(to right, #d4af37, #fcf6ba, #d4af37);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        /* Border Emas Bersinar untuk Kotak Tengah */
         .gold-border {
             border: 1px solid #d4af37;
             box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
         }
-
-        /* Tombol Unduh Emas */
         .gold-btn {
             background: linear-gradient(to right, #d4af37, #b38728);
             color: #121212;
@@ -55,9 +48,7 @@
         <div class="bg-[#1a1a1a] p-8 rounded-xl gold-border w-full relative overflow-hidden">
             
             <div class="flex justify-center mb-6">
-                <img src="{{ asset('images/logo1.png') }}" 
-                     alt="Logo SCAG" 
-                     class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                <img src="{{ asset('images/logo1.png') }}" alt="Logo SCAG" class="w-24 h-24 object-cover rounded-full border-2 border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
             </div>        
             
             <div class="text-center mb-6">
@@ -65,46 +56,75 @@
                 <p class="text-gray-400 mt-2 text-xs uppercase tracking-[0.3em]">SCAR 2026</p>
             </div>
 
-            <!-- Tempat Notifikasi Error / Success -->
             @if(session('error'))
                 <div class="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-500/50 text-red-300 text-center text-sm font-bold shadow-lg tracking-wide">
                     ⚠️ {{ session('error') }}
                 </div>
             @endif
 
-            @if(session('success'))
-                <div class="mb-6 p-4 rounded-lg bg-green-900/30 border border-green-500/50 text-green-300 text-center text-sm font-bold shadow-lg tracking-wide">
-                    ✅ {{ session('success') }}
-                </div>
-            @endif
-
-
-            <!-- LOGIKA LINK DINAMIS: TAMPILKAN FORM ATAU GEMBOK -->
-            @if(isset($code) && $code != null)
-                <!-- Tampilan Jika Link Valid -->
-                <form action="{{ url('/claim/' . $code) }}" method="POST">
+            <!-- LOGIKA ON/OFF PORTAL -->
+            @if(isset($isOpen) && $isOpen)
+                <!-- Form Utama dengan JS Real-time -->
+                <form action="{{ route('claim.process') }}" method="POST">
                     @csrf
                     <div class="mb-6">
                         <label class="block text-gray-300 text-sm font-bold mb-2 uppercase tracking-wide text-center">Masukkan No. WhatsApp Anda</label>
-                        <input type="text" name="nim" required class="w-full py-4 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-[#fcf6ba] text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500 tracking-widest" placeholder="Contoh: 081234567890">
+                        <input type="text" id="nimInput" name="nim" required autocomplete="off" class="w-full py-4 px-4 bg-[#2a2a2a] border border-gray-600 rounded text-[#fcf6ba] text-center text-xl font-bold focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all placeholder-gray-500 tracking-widest" placeholder="Contoh: 081234567890">
                     </div>
 
-                    <button type="submit" class="w-full text-center gold-btn font-extrabold py-4 px-4 rounded-lg transition-all transform hover:scale-105 uppercase tracking-wider text-sm">
-                        <i class="fa-solid fa-cloud-arrow-down mr-2"></i> Verifikasi & Unduh
-                    </button>
+                    <!-- Kotak Hasil (Disembunyikan secara default, muncul jika WA valid) -->
+                    <div id="resultBox" class="hidden mb-6 p-5 bg-[#222222] border border-[#d4af37] rounded-lg text-center transform transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                        <p class="text-sm text-gray-400 mb-1">Sertifikat atas nama:</p>
+                        <p id="nameOutput" class="text-2xl font-bold text-[#fcf6ba] mb-5 uppercase tracking-wide"></p>
+                        
+                        <!-- Tombol ini mensubmit form untuk mendapatkan PDF -->
+                        <button type="submit" class="w-full text-center gold-btn font-extrabold py-4 px-4 rounded-lg transition-all transform hover:scale-105 uppercase tracking-wider text-sm">
+                            <i class="fa-solid fa-cloud-arrow-down mr-2"></i> Unduh File PDF
+                        </button>
+                    </div>
+
+                    <p id="errorMsg" class="hidden text-red-400 text-sm text-center bg-red-900 bg-opacity-20 p-3 rounded border border-red-800/50"></p>
                 </form>
+
+                <!-- Script JS untuk mengintip nama dari database -->
+                <script>
+                    const nimInput = document.getElementById('nimInput');
+                    const resultBox = document.getElementById('resultBox');
+                    const nameOutput = document.getElementById('nameOutput');
+                    const errorMsg = document.getElementById('errorMsg');
+
+                    nimInput.addEventListener('input', function() {
+                        let nim = this.value.trim();
+                        if(nim.length >= 5) {
+                            fetch(`/api/check-nim/${nim}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if(data.status === 'success') {
+                                        resultBox.classList.remove('hidden');
+                                        errorMsg.classList.add('hidden');
+                                        nameOutput.textContent = data.name;
+                                    } else {
+                                        resultBox.classList.add('hidden');
+                                        errorMsg.classList.remove('hidden');
+                                        errorMsg.textContent = "Nomor WhatsApp tidak ditemukan di database kami.";
+                                    }
+                                });
+                        } else {
+                            resultBox.classList.add('hidden');
+                            errorMsg.classList.add('hidden');
+                        }
+                    });
+                </script>
             @else
-                <!-- Tampilan Jika Buka Link Tanpa Code (Nyasar / Sesi Ditutup) -->
+                <!-- Tampilan Jika Portal Sedang Digembok / Ditutup oleh Admin -->
                 <div class="p-6 bg-[#222222] border border-gray-700 rounded-lg text-center transform transition-all">
                     <i class="fa-solid fa-lock text-5xl text-gray-500 mb-4"></i>
                     <h3 class="text-lg font-bold text-[#fcf6ba] mb-2 uppercase tracking-widest">Portal Tertutup</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">Sesi unduhan tidak aktif. Gunakan <strong>Link Resmi</strong> yang diberikan oleh panitia.</p>
+                    <p class="text-sm text-gray-400 leading-relaxed">Sesi unduhan sertifikat sedang tidak aktif. Harap menunggu instruksi dari panitia.</p>
                 </div>
             @endif
 
         </div>
-
     </div>
-
 </body>
 </html>

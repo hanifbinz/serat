@@ -3,14 +3,17 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\UserController;
 
 // --- DOMAIN PESERTA ---
 Route::domain('sertifikat.majuterus.my.id')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->name('home');
     
-    // Rute Link Unduh Dinamis
-    Route::get('/claim/{code}', [GuestController::class, 'showClaimForm'])->name('claim.form');
-    Route::post('/claim/{code}', [GuestController::class, 'processClaim']);
+    // Rute API untuk cek nama real-time via AJAX (JavaScript)
+    Route::get('/api/check-nim/{nim}', [GuestController::class, 'checkNim']); 
+    
+    // Rute proses unduh dengan sistem token aman
+    Route::post('/claim', [GuestController::class, 'processClaim'])->name('claim.process');
     Route::get('/download-file/{token}/{id}', [GuestController::class, 'downloadByToken'])->name('download.token');
 });
 
@@ -28,16 +31,16 @@ Route::domain('han.majuterus.my.id')->group(function () {
         Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
         Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
         
-        // Rute Generator Link Dinamis
-        Route::post('/generate-link', [AdminController::class, 'generateLink'])->name('admin.generate-link');
-        Route::post('/close-link', [AdminController::class, 'closeLink'])->name('admin.close-link');
-
+        // Rute Sistem Buka/Tutup Portal (ON/OFF)
+        Route::post('/open-session', [AdminController::class, 'openSession'])->name('admin.open-session');
+        Route::post('/close-session', [AdminController::class, 'closeSession'])->name('admin.close-session');
+        
         Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
 
         Route::middleware('can:is-administrator')->group(function () {
-            Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('admin.users');
-            Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('admin.users.store');
-            Route::delete('/users/{user}', [\App\Http\Controllers\UserController::class, 'destroy'])->name('admin.users.destroy');
+            Route::get('/users', [UserController::class, 'index'])->name('admin.users');
+            Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
+            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         });
     });
 });
