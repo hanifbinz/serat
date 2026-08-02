@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin Panel - Serat')</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Ikon dari FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal flex h-screen overflow-hidden">
@@ -25,10 +24,16 @@
                 <a href="{{ route('admin.dashboard') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
                     <i class="fa-solid fa-chart-pie w-6"></i> Dashboard Event
                 </a>
+
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Kelola Peserta</p>
+                <a href="{{ route('admin.participants.index') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.participants.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
+                    <i class="fa-solid fa-users-gear w-6"></i> Data Peserta (CRUD)
+                </a>
+                <a href="{{ route('admin.registration.setting') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.registration.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
+                    <i class="fa-solid fa-sliders w-6"></i> Setting Registrasi
+                </a>
                 
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Pengaturan</p>
-                
-                <!-- Menu Baru: Manajemen User (Dibatasi Gate) -->
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Pengaturan System</p>
                 @can('is-administrator')
                 <a href="{{ route('admin.users') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.users') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
                     <i class="fa-solid fa-users w-6"></i> Manajemen User
@@ -68,14 +73,14 @@
             </div>
         </header>
 
-        <!-- KONTEN UTAMA YANG BISA DI-SCROLL -->
+        <!-- KONTEN UTAMA -->
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-8">
-            <!-- Tempat Notifikasi -->
             @if(session('success'))
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm font-medium">
                 <i class="fa-solid fa-check-circle mr-2"></i> {{ session('success') }}
             </div>
             @endif
+
             @if($errors->any())
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
                 <ul class="list-disc pl-5 font-medium">
@@ -86,9 +91,7 @@
             </div>
             @endif
 
-            <!-- Tempat Kotak-kotak (Cards) dimasukkan -->
             @yield('content')
-            
         </main>
     </div>
 </body>

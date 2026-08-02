@@ -15,7 +15,6 @@ class GuestController extends Controller
         $sessionStatus = Setting::where('key', 'session_status')->first();
         $isOpen = $sessionStatus && $sessionStatus->value === 'open';
         
-        // --- BARU: Tarik data judul acara dan lempar ke View ---
         $titleSetting = Setting::where('key', 'seminar_title')->first();
         $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
         
@@ -80,5 +79,41 @@ class GuestController extends Controller
                   ->setPaper('a4', 'landscape');
 
         return $pdf->download('Sertifikat - ' . $participant->name . '.pdf');
+    }
+
+    // --- FITUR BARU: HALAMAN & LOGIKA REGISTRASI MANDIRI ---
+    public function showRegister()
+    {
+        $regStatus = Setting::where('key', 'registration_status')->first();
+        $isRegOpen = $regStatus && $regStatus->value === 'open';
+        
+        $titleSetting = Setting::where('key', 'seminar_title')->first();
+        $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
+        
+        return view('register', compact('isRegOpen', 'seminarTitle'));
+    }
+
+    public function processRegister(Request $request)
+    {
+        $regStatus = Setting::where('key', 'registration_status')->first();
+        if (!$regStatus || $regStatus->value !== 'open') {
+            return back()->with('error', 'Maaf, Form Pendaftaran saat ini sedang ditutup oleh panitia.');
+        }
+
+        $request->validate([
+            'nim' => 'required|string|unique:participants,nim',
+            'name' => 'required|string|max:255',
+        ], [
+            'nim.unique' => 'Nomor WhatsApp ini sudah terdaftar sebelumnya!',
+            'nim.required' => 'Nomor WhatsApp wajib diisi.',
+            'name.required' => 'Nama lengkap wajib diisi.',
+        ]);
+
+        Participant::create([
+            'nim' => $request->nim,
+            'name' => $request->name,
+        ]);
+
+        return back()->with('success', 'Pendaftaran Berhasil! Data Anda telah resmi terdaftar.');
     }
 }
