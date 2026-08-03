@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\ParticipantCrudController;
 use App\Http\Controllers\CertificateController;
@@ -49,5 +50,18 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 });
 
-// Auth Routes Bawaan Laravel
-require __DIR__.'/auth.php';
+// --- AUTHENTICATION ROUTES PENGGANTI ---
+// require __DIR__.'/auth.php'; // <--- Dimatikan agar tidak error
+
+Route::post('/logout', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    
+    return redirect('/'); // Arahkan kembali ke halaman depan
+})->name('logout');
+
+// Route login darurat (Mencegah error 'Route [login] not defined' dari middleware)
+Route::get('/login', function () {
+    return view('admin.login'); // Pastikan Om punya file resources/views/admin/login.blade.php
+})->name('login');
