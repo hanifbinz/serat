@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request; // <-- Ditambahkan untuk menangkap data form
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\ParticipantCrudController;
 use App\Http\Controllers\CertificateController;
@@ -50,9 +51,33 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 });
 
+
 // --- AUTHENTICATION ROUTES PENGGANTI ---
 // require __DIR__.'/auth.php'; // <--- Dimatikan agar tidak error
 
+// 1. Route untuk MENAMPILKAN halaman form login
+Route::get('/login', function () {
+    return view('admin.login'); 
+})->name('login')->middleware('guest');
+
+// 2. Route untuk MEMPROSES data saat tombol login ditekan
+Route::post('/login', function (Request $request) {
+    $credentials = $request->validate([
+        'email' => ['required', 'email'],
+        'password' => ['required'],
+    ]);
+
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+        return redirect()->intended('admin/dashboard');
+    }
+
+    return back()->withErrors([
+        'email' => 'Email atau password salah.',
+    ])->onlyInput('email');
+});
+
+// 3. Route untuk LOGOUT
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -60,8 +85,3 @@ Route::post('/logout', function () {
     
     return redirect('/'); // Arahkan kembali ke halaman depan
 })->name('logout');
-
-// Route login darurat (Mencegah error 'Route [login] not defined' dari middleware)
-Route::get('/login', function () {
-    return view('admin.login'); // Pastikan Om punya file resources/views/admin/login.blade.php
-})->name('login');
