@@ -2,91 +2,99 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Participant;
-use App\Models\Setting;
 use Illuminate\Http\Request;
+use App\Models\Participant;
+use Illuminate\Support\Facades\DB;
 
 class ParticipantCrudController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $query = Participant::query();
+        // Load relasi 'answers' untuk bisa melihat data dinamis di tabel admin nanti
+        $participants = Participant::with('answers.registrationField')->latest()->paginate(20);
+        return view('admin.participants.index', compact('participants'));
+    }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nim', 'like', "%{$search}%");
-            });
-        }
-
-        $participants = $query->latest()->paginate(15)->withQueryString();
-
-        return view('admin.participants', compact('participants'));
+    public function create()
+    {
+        return view('admin.participants.create');
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'nim' => 'required|string|unique:participants,nim',
             'name' => 'required|string|max:255',
-        ], [
-            'nim.unique' => 'Nomor WhatsApp / NIM ini sudah terdaftar!',
-            'nim.required' => 'Nomor WhatsApp wajib diisi.',
-            'name.required' => 'Nama lengkap wajib diisi.',
+            'phone' => 'required|string|max:20|unique:participants,phone',
         ]);
 
-        Participant::create($request->only('nim', 'name'));
+        Participant::create($request->only(['name', 'phone']));
 
-        return back()->with('success', 'Data peserta berhasil ditambahkan.');
+        return redirect()->route('admin.participants.index')->with('success', 'Data peserta berhasil ditambahkan!');
     }
 
-    // Perbaikan: Tambahkan tipe data "string" pada $id
-    public function update(Request $request, string $id) 
+    public function edit(int $id)
     {
         $participant = Participant::findOrFail($id);
+        return view('admin.participants.edit', compact('participant'));
+    }
 
+    public function update(Request $request, int $id)
+    {
+        $participant = Participant::findOrFail($id);
+        
         $request->validate([
-            'nim' => 'required|string|unique:participants,nim,' . $id,
             'name' => 'required|string|max:255',
-        ], [
-            'nim.unique' => 'Nomor WhatsApp / NIM ini sudah digunakan peserta lain!',
-            'nim.required' => 'Nomor WhatsApp wajib diisi.',
-            'name.required' => 'Nama lengkap wajib diisi.',
+            'phone' => 'required|string|max:20|unique:participants,phone,' . $participant->id,
         ]);
 
-        $participant->update($request->only('nim', 'name'));
+        $participant->update($request->only(['name', 'phone']));
 
-        return back()->with('success', 'Data peserta berhasil diperbarui.');
+        return redirect()->route('admin.participants.index')->with('success', 'Data peserta berhasil diperbarui!');
     }
 
-    // Perbaikan: Tambahkan tipe data "string" pada $id
-    public function destroy(string $id) 
+    public function destroy(int $id)
     {
-        $participant = Participant::findOrFail($id);
-        $participant->delete();
-
-        return back()->with('success', 'Data peserta berhasil dihapus.');
+        Participant::findOrFail($id)->delete();
+        return back()->with('success', 'Peserta berhasil dihapus!');
     }
 
-    public function registrationSetting()
-    {
-        $regStatus = Setting::where('key', 'registration_status')->first();
-        $isRegOpen = $regStatus && $regStatus->value === 'open';
+    // --- FITUR MASSAL YANG DIPINDAH DARI DASHBOARD ---
 
-        return view('admin.registration_setting', compact('isRegOpen'));
+    public function importCsv(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getPathname(), "r");
+        
+        $header = true;
+        while ($csvLine = fgetcsv($handle, 1000, ",")) {
+            if ($header) {
+                $header = false; // Lewati baris pertama (judul kolom)
+                continue;
+            }
+            
+            // Asumsi format CSV: Kolom 0 = Nama, Kolom 1 = Phone
+            if (isset($csvLine[0]) && isset($csvLine[1])) {
+                Participant::updateOrCreate(
+                    ['phone' => $csvLine[1]], // Cari berdasarkan WA agar tidak dobel
+                    ['name' => $csvLine[0]]
+                );
+            }
+        }
+        fclose($handle);
+
+        return back()->with('success', 'Data peserta dari CSV berhasil diimpor!');
     }
 
-    public function toggleRegistration()
+    public function truncate()
     {
-        $regStatus = Setting::where('key', 'registration_status')->first();
-        $newValue = ($regStatus && $regStatus->value === 'open') ? 'closed' : 'open';
+        // Menggunakan query builder agar aman untuk sqlite, lalu mereset ID ke 1
+        Participant::query()->delete();
+        DB::statement('DELETE FROM sqlite_sequence WHERE name="participants"');
 
-        Setting::updateOrCreate(
-            ['key' => 'registration_status'],
-            ['value' => $newValue]
-        );
-
-        return back()->with('success', 'Status Form Registrasi Publik berhasil diubah!');
+        return back()->with('success', 'Semua data peserta berhasil dikosongkan!');
     }
 }

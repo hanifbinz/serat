@@ -25,12 +25,19 @@
                     <i class="fa-solid fa-chart-pie w-6"></i> Dashboard Event
                 </a>
 
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Kelola Peserta</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Kelola Event</p>
                 <a href="{{ route('admin.participants.index') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.participants.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
                     <i class="fa-solid fa-users-gear w-6"></i> Data Peserta (CRUD)
                 </a>
-                <a href="{{ route('admin.registration.setting') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.registration.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
+                
+                <!-- Perbaikan route menjadi admin.registration-settings.index -->
+                <a href="{{ route('admin.registration-settings.index') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.registration-settings.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
                     <i class="fa-solid fa-sliders w-6"></i> Setting Registrasi
+                </a>
+
+                <!-- Penambahan Menu Sertifikat -->
+                <a href="{{ route('admin.certificate.index') }}" class="block px-4 py-3 rounded-lg {{ request()->routeIs('admin.certificate.*') ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }} transition-all">
+                    <i class="fa-solid fa-certificate w-6"></i> Setting Sertifikat
                 </a>
                 
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-2">Pengaturan System</p>

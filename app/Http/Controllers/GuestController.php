@@ -2,118 +2,100 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Participant;
 use App\Models\Setting;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\RegistrationField;
+use App\Models\ParticipantAnswer;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\Request;
 
 class GuestController extends Controller
 {
-    public function index()
+    public function showRegistrationForm()
     {
-        $sessionStatus = Setting::where('key', 'session_status')->first();
-        $isOpen = $sessionStatus && $sessionStatus->value === 'open';
-        
-        $titleSetting = Setting::where('key', 'seminar_title')->first();
-        $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
-        
-        return view('welcome', compact('isOpen', 'seminarTitle'));
+        // Cek apakah pendaftaran dibuka
+        $isOpen = Setting::getValue('registration_open', '1');
+        if ($isOpen !== '1') {
+            return view('guest.closed', ['message' => 'Mohon maaf, pendaftaran saat ini sedang ditutup.']);
+        }
+
+        $formTitle = Setting::getValue('form_title', 'Form Pendaftaran Acara');
+        $eventBackground = Setting::getValue('event_background');
+        $fields = RegistrationField::all();
+
+        return view('guest.register', compact('formTitle', 'eventBackground', 'fields'));
     }
 
-    public function checkNim(string $nim)
+    public function submitRegistration(Request $request)
     {
-        $participant = Participant::where('nim', $nim)->first();
-        if ($participant) {
-            return response()->json(['status' => 'success', 'name' => $participant->name]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'NIM tidak ditemukan.']);
-    }
+        // 1. Validasi Dasar (Nama & No WA)
+        $rules = [
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20|unique:participants,phone',
+        ];
 
-    public function processClaim(Request $request)
-    {
-        $sessionStatus = Setting::where('key', 'session_status')->first();
-        if (!$sessionStatus || $sessionStatus->value !== 'open') {
-            return redirect('/')->with('error', 'Maaf, Portal Unduhan saat ini sedang ditutup oleh panitia.');
-        }
-
-        $request->validate(['nim' => 'required|string']);
-        $participant = Participant::where('nim', $request->nim)->first();
-
-        if (!$participant) {
-            return back()->with('error', 'Nomor WhatsApp Anda tidak terdaftar di database.');
+        // 2. Validasi Dinamis (Looping dari tabel field yang dibuat admin)
+        $fields = RegistrationField::all();
+        foreach ($fields as $field) {
+            $rule = $field->is_required ? 'required' : 'nullable';
+            $rule .= $field->type === 'number' ? '|numeric' : '|string';
+            
+            $rules['dynamic_' . $field->id] = $rule;
         }
 
-        $downloadToken = md5($participant->nim . env('APP_KEY', 'rahasia') . time());
-        session(['download_token_' . $participant->id => $downloadToken]);
+        $request->validate($rules);
 
-        return redirect()->route('download.token', ['token' => $downloadToken, 'id' => $participant->id]);
-    }
+        // 3. Simpan ke database peserta (Tabel Utama)
+        $participant = Participant::create([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
 
-    public function downloadByToken(string $token, int $id)
-    {
-        $participant = Participant::findOrFail($id);
-
-        if (session('download_token_' . $participant->id) !== $token) {
-            return redirect('/')->with('error', 'Akses unduh tidak valid atau sudah kedaluwarsa.');
-        }
-
-        session()->forget('download_token_' . $participant->id);
-
-        $template = Setting::where('key', 'template_path')->first();
-        $base64Image = null;
-        
-        if ($template && $template->value) {
-            if (Storage::exists($template->value)) {
-                $ext = pathinfo($template->value, PATHINFO_EXTENSION);
-                $data = Storage::get($template->value);
-                $base64Image = 'data:image/' . $ext . ';base64,' . base64_encode($data);
+        // 4. Simpan jawaban dinamis ke tabel jawaban (Relasi)
+        foreach ($fields as $field) {
+            if ($request->has('dynamic_' . $field->id)) {
+                ParticipantAnswer::create([
+                    'participant_id' => $participant->id,
+                    'registration_field_id' => $field->id,
+                    'answer_value' => $request->input('dynamic_' . $field->id),
+                ]);
             }
         }
 
-        $prefixSetting = Setting::where('key', 'certificate_prefix')->first();
-        $prefix = $prefixSetting ? $prefixSetting->value : 'SCAR/2026/VI/';
-
-        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
-                  ->loadView('certificate', compact('participant', 'base64Image', 'prefix'))
-                  ->setPaper('a4', 'landscape');
-
-        return $pdf->download('Sertifikat - ' . $participant->name . '.pdf');
+        return back()->with('success', 'Pendaftaran berhasil! Terima kasih sudah mendaftar.');
     }
 
-    // --- FITUR BARU: HALAMAN & LOGIKA REGISTRASI MANDIRI ---
-    public function showRegister()
+    public function downloadBackground()
     {
-        $regStatus = Setting::where('key', 'registration_status')->first();
-        $isRegOpen = $regStatus && $regStatus->value === 'open';
+        $backgroundPath = Setting::getValue('event_background');
         
-        $titleSetting = Setting::where('key', 'seminar_title')->first();
-        $seminarTitle = $titleSetting ? $titleSetting->value : 'SCAR 2026';
-        
-        return view('register', compact('isRegOpen', 'seminarTitle'));
-    }
-
-    public function processRegister(Request $request)
-    {
-        $regStatus = Setting::where('key', 'registration_status')->first();
-        if (!$regStatus || $regStatus->value !== 'open') {
-            return back()->with('error', 'Maaf, Form Pendaftaran saat ini sedang ditutup oleh panitia.');
+        if ($backgroundPath && Storage::exists($backgroundPath)) {
+            return Storage::download($backgroundPath);
         }
 
-        $request->validate([
-            'nim' => 'required|string|unique:participants,nim',
-            'name' => 'required|string|max:255',
-        ], [
-            'nim.unique' => 'Nomor WhatsApp ini sudah terdaftar sebelumnya!',
-            'nim.required' => 'Nomor WhatsApp wajib diisi.',
-            'name.required' => 'Nama lengkap wajib diisi.',
-        ]);
+        return back()->with('error', 'File background belum tersedia.');
+    }
 
-        Participant::create([
-            'nim' => $request->nim,
-            'name' => $request->name,
-        ]);
+    public function searchCertificate()
+    {
+        $isOpen = Setting::getValue('certificate_open', '0');
+        $eventName = Setting::getValue('event_name', 'Nama Acara Default');
+        
+        return view('guest.certificate', compact('isOpen', 'eventName'));
+    }
 
-        return back()->with('success', 'Pendaftaran Berhasil! Data Anda telah resmi terdaftar.');
+    public function downloadCertificate(Request $request)
+    {
+        $request->validate(['phone' => 'required|string']);
+        
+        $participant = Participant::where('phone', $request->phone)->first();
+        
+        if (!$participant) {
+            return back()->with('error', 'Nomor WhatsApp tidak ditemukan.');
+        }
+
+        // Catatan: Ini adalah placeholder. Nanti logika cetak/intervensi gambar sertifikat 
+        // yang lama bisa dimasukkan ke dalam blok ini.
+        return back()->with('success', 'Sertifikat siap diunduh.');
     }
 }

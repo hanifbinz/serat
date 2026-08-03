@@ -5,17 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Participant extends Model
+class RegistrationField extends Model
 {
     use HasFactory;
 
-    // Pastikan ini sesuai dengan field standar Om (Nama dan WA)
     protected $fillable = [
-        'name',
-        'phone',
+        'label',
+        'type',
+        'is_required',
     ];
 
-    // Relasi ke tabel jawaban dinamis
     public function answers()
     {
         return $this->hasMany(ParticipantAnswer::class);

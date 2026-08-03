@@ -2,55 +2,52 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GuestController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\ParticipantCrudController;
+use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\RegistrationSettingController;
 
-// --- DOMAIN PESERTA ---
-Route::domain('sertifikat.majuterus.my.id')->group(function () {
-    Route::get('/', [GuestController::class, 'index'])->name('home');
-    Route::get('/api/check-nim/{nim}', [GuestController::class, 'checkNim']); 
-    Route::post('/claim', [GuestController::class, 'processClaim'])->name('claim.process');
-    Route::get('/download-file/{token}/{id}', [GuestController::class, 'downloadByToken'])->name('download.token');
-
-    // --- FORM REGISTRASI MANDIRI (PUBLIK) ---
-    Route::get('/register', [GuestController::class, 'showRegister'])->name('register.show');
-    Route::post('/register', [GuestController::class, 'processRegister'])->name('register.process');
+// --- AREA PUBLIK (PESERTA) ---
+Route::get('/', function () {
+    return redirect()->route('guest.register');
 });
 
-// --- DOMAIN ADMIN ---
-Route::domain('han.majuterus.my.id')->group(function () {
-    Route::get('/', function () { return redirect()->route('login'); });
-    Route::get('/login', [AdminController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AdminController::class, 'login']);
-    Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
+// Pendaftaran & Background
+Route::get('/register', [GuestController::class, 'showRegistrationForm'])->name('guest.register');
+Route::post('/register', [GuestController::class, 'submitRegistration'])->name('guest.register.submit');
+Route::get('/download-background', [GuestController::class, 'downloadBackground'])->name('guest.download.background');
+
+// Portal Sertifikat
+Route::get('/sertifikat', [GuestController::class, 'searchCertificate'])->name('guest.certificate.search');
+Route::post('/sertifikat/download', [GuestController::class, 'downloadCertificate'])->name('guest.certificate.download');
+
+
+// --- AREA ADMIN ---
+// Asumsi menggunakan middleware auth bawaan Laravel (Breeze/UI)
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     
-    Route::middleware('auth')->prefix('admin')->group(function () {
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-        Route::post('/upload-data', [AdminController::class, 'uploadData'])->name('admin.upload-data');
-        Route::post('/upload-template', [AdminController::class, 'uploadTemplate'])->name('admin.upload-template');
-        Route::post('/clear-data', [AdminController::class, 'clearData'])->name('admin.clear-data');
-        Route::post('/clear-template', [AdminController::class, 'clearTemplate'])->name('admin.clear-template');
-        
-        Route::post('/open-session', [AdminController::class, 'openSession'])->name('admin.open-session');
-        Route::post('/close-session', [AdminController::class, 'closeSession'])->name('admin.close-session');
-        Route::post('/save-prefix', [AdminController::class, 'savePrefix'])->name('admin.save-prefix');
-        Route::post('/save-seminar-title', [AdminController::class, 'saveSeminarTitle'])->name('admin.save-seminar-title');
+    // 1. Dashboard (Galeri/Dokumentasi)
+    Route::get('/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('dashboard');
 
-        // --- MANAJEMEN PESERTA (CRUD) ---
-        Route::get('/participants', [ParticipantCrudController::class, 'index'])->name('admin.participants.index');
-        Route::post('/participants', [ParticipantCrudController::class, 'store'])->name('admin.participants.store');
-        Route::put('/participants/{id}', [ParticipantCrudController::class, 'update'])->name('admin.participants.update');
-        Route::delete('/participants/{id}', [ParticipantCrudController::class, 'destroy'])->name('admin.participants.destroy');
+    // 2. Kelola Sertifikat
+    Route::get('/certificate', [CertificateController::class, 'index'])->name('certificate.index');
+    Route::post('/certificate/upload', [CertificateController::class, 'uploadTemplate'])->name('certificate.upload');
+    Route::post('/certificate/toggle', [CertificateController::class, 'togglePortal'])->name('certificate.toggle');
+    Route::post('/certificate/settings', [CertificateController::class, 'updateSettings'])->name('certificate.settings');
 
-        // --- PENGATURAN REGISTRASI PUBLIK ---
-        Route::get('/registration-setting', [ParticipantCrudController::class, 'registrationSetting'])->name('admin.registration.setting');
-        Route::post('/registration-setting/toggle', [ParticipantCrudController::class, 'toggleRegistration'])->name('admin.registration.toggle');
+    // 3. Data Peserta (CRUD + CSV + Truncate)
+    Route::resource('participants', ParticipantCrudController::class);
+    Route::post('participants-import', [ParticipantCrudController::class, 'importCsv'])->name('participants.import');
+    Route::post('participants-truncate', [ParticipantCrudController::class, 'truncate'])->name('participants.truncate');
 
-        Route::middleware('can:is-administrator')->group(function () {
-            Route::get('/users', [UserController::class, 'index'])->name('admin.users');
-            Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
-            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
-        });
-    });
+    // 4. Setting Registrasi (Form Dinamis & Background)
+    Route::get('/registration-settings', [RegistrationSettingController::class, 'index'])->name('registration-settings.index');
+    Route::post('/registration-settings/update-general', [RegistrationSettingController::class, 'updateGeneral'])->name('registration-settings.update-general');
+    Route::post('/registration-settings/fields', [RegistrationSettingController::class, 'storeField'])->name('registration-settings.fields.store');
+    Route::delete('/registration-settings/fields/{id}', [RegistrationSettingController::class, 'destroyField'])->name('registration-settings.fields.destroy');
+
 });
+
+// Auth Routes Bawaan Laravel
+require __DIR__.'/auth.php';
