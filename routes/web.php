@@ -36,8 +36,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/certificate', [CertificateController::class, 'index'])->name('certificate.index');
     Route::post('/certificate/upload', [CertificateController::class, 'uploadTemplate'])->name('certificate.upload');
     Route::post('/certificate/toggle', [CertificateController::class, 'togglePortal'])->name('certificate.toggle');
-    Route::post('/certificate/settings', [CertificateController::class, 'updateSettings'])->name('certificate.settings');
-
+    Route::post('/certificate/update', [CertificateController::class, 'updateSettings'])->name('certificate.update');
     // 3. Data Peserta (CRUD + CSV + Truncate)
     Route::resource('participants', ParticipantCrudController::class);
     Route::post('participants-import', [ParticipantCrudController::class, 'importCsv'])->name('participants.import');
