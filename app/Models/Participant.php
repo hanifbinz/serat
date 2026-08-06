@@ -9,13 +9,9 @@ class Participant extends Model
 {
     use HasFactory;
 
-    // Pastikan ini sesuai dengan field standar Om (Nama dan WA)
-    protected $fillable = [
-        'name',
-        'phone',
-    ];
+    // Pastikan 3 kolom ini diizinkan untuk diisi
+    protected $fillable = ['name', 'email', 'phone'];
 
-    // Relasi ke tabel jawaban dinamis
     public function answers()
     {
         return $this->hasMany(ParticipantAnswer::class);

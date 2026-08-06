@@ -2,100 +2,215 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Participant;
-use App\Models\Setting;
 use App\Models\RegistrationField;
 use App\Models\ParticipantAnswer;
+use App\Models\Setting;
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class GuestController extends Controller
 {
-    public function showRegistrationForm()
+    // --- FITUR PENDAFTARAN ---
+    
+    public function showRegistrationForm($slug = null)
     {
-        // Cek apakah pendaftaran dibuka
-        $isOpen = Setting::getValue('registration_open', '1');
-        if ($isOpen !== '1') {
-            return view('guest.closed', ['message' => 'Mohon maaf, pendaftaran saat ini sedang ditutup.']);
+        $isOpen = Setting::getValue('registration_open', '0');
+        if ($isOpen == '0') {
+            return view('guest.closed');
         }
 
+        $fields = RegistrationField::orderBy('order')->get();
+        
+        // SINKRONISASI ADMIN: Ambil Judul Form
         $formTitle = Setting::getValue('form_title', 'Form Pendaftaran Acara');
-        $eventBackground = Setting::getValue('event_background');
-        $fields = RegistrationField::all();
 
-        return view('guest.register', compact('formTitle', 'eventBackground', 'fields'));
-    }
+        // SINKRONISASI ADMIN: Ambil Background & Auto-Fix foldernya
+        $rawBackground = Setting::getValue('event_background');
+        $eventBackground = null;
+        
+        if ($rawBackground) {
+            // Bersihkan path
+            $cleanPath = str_replace(['public/', 'storage/', 'public\\', 'storage\\'], '', $rawBackground);
+            $cleanPath = ltrim($cleanPath, '/\\');
 
-    public function submitRegistration(Request $request)
-    {
-        // 1. Validasi Dasar (Nama & No WA)
-        $rules = [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:participants,phone',
+            // Auto-Fix penyesuaian folder uploads/backgrounds
+            if (!str_contains($cleanPath, 'uploads/') && str_contains($cleanPath, 'backgrounds')) {
+                $cleanPath = 'uploads/' . $cleanPath;
+            }
+
+            $eventBackground = $cleanPath;
+        }
+
+        $settings = [
+            'event_title' => $formTitle,
+            'background'  => $eventBackground
         ];
 
-        // 2. Validasi Dinamis (Looping dari tabel field yang dibuat admin)
-        $fields = RegistrationField::all();
-        foreach ($fields as $field) {
-            $rule = $field->is_required ? 'required' : 'nullable';
-            $rule .= $field->type === 'number' ? '|numeric' : '|string';
-            
-            $rules['dynamic_' . $field->id] = $rule;
-        }
+        return view('guest.register', compact('fields', 'settings', 'formTitle', 'eventBackground', 'isOpen', 'slug'));
+    }
 
-        $request->validate($rules);
+    public function submitRegistration(Request $request, $slug = null)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+        ]);
 
-        // 3. Simpan ke database peserta (Tabel Utama)
         $participant = Participant::create([
             'name' => $request->name,
             'phone' => $request->phone,
+            'email' => $request->email,
         ]);
 
-        // 4. Simpan jawaban dinamis ke tabel jawaban (Relasi)
+        $fields = RegistrationField::all();
         foreach ($fields as $field) {
-            if ($request->has('dynamic_' . $field->id)) {
+            $inputName = 'field_' . $field->id;
+            if ($request->has($inputName)) {
                 ParticipantAnswer::create([
                     'participant_id' => $participant->id,
                     'registration_field_id' => $field->id,
-                    'answer_value' => $request->input('dynamic_' . $field->id),
+                    'answer_value' => $request->input($inputName),
                 ]);
             }
         }
 
-        return back()->with('success', 'Pendaftaran berhasil! Terima kasih sudah mendaftar.');
+        return redirect()->back()->with('success', 'Pendaftaran berhasil!');
     }
 
-    public function downloadBackground()
+    // --- FITUR DOWNLOAD BACKGROUND (DITAMBAHKAN) ---
+
+   public function downloadBackground()
     {
-        $backgroundPath = Setting::getValue('event_background');
-        
-        if ($backgroundPath && Storage::exists($backgroundPath)) {
-            return Storage::download($backgroundPath);
+        $rawBackground = Setting::getValue('event_background') ?? Setting::getValue('registration_background');
+
+        if (!$rawBackground) {
+            return back()->with('error', 'File background belum diunggah oleh panitia.');
         }
 
-        return back()->with('error', 'File background belum tersedia.');
+        // Bersihkan path
+        $cleanPath = str_replace(['public/', 'storage/', 'public\\', 'storage\\'], '', $rawBackground);
+        $cleanPath = ltrim($cleanPath, '/\\');
+
+        if (!str_contains($cleanPath, 'uploads/') && str_contains($cleanPath, 'backgrounds')) {
+            $cleanPath = 'uploads/' . $cleanPath;
+        }
+
+        $fullPath = public_path($cleanPath);
+
+        if (!File::exists($fullPath)) {
+            return back()->with('error', 'File background tidak ditemukan di server.');
+        }
+
+        // JURUS BARU: Paksa ekstensi dan nama file saat didownload 
+        // agar tidak mungkin tertukar dengan PDF sertifikat!
+        $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+        $namaFileBaru = 'Background_Virtual_Acara.' . $extension;
+
+        return response()->download($fullPath, $namaFileBaru);
+    }
+    // --- FITUR SERTIFIKAT ---
+
+    public function searchCertificate($slug = null)
+    {
+        $eventName = Setting::getValue('event_name', 'Acara Kami');
+        $isOpen = Setting::getValue('certificate_open', '0');
+        
+        $marqueeText = Setting::getValue('marquee_text', 'Selamat datang di Portal Unduh Sertifikat. Silakan masukkan Nomor WhatsApp Anda.');
+        
+        $logoPath = Setting::getValue('event_logo');
+        $eventLogo = $logoPath ? asset('storage/' . str_replace('public/', '', $logoPath)) : null;
+        
+        return view('guest.certificate_search', compact('eventName', 'isOpen', 'slug', 'marqueeText', 'eventLogo'));
     }
 
-    public function searchCertificate()
+    // Check Participant via AJAX
+    public function checkParticipant(Request $request)
     {
-        $isOpen = Setting::getValue('certificate_open', '0');
-        $eventName = Setting::getValue('event_name', 'Nama Acara Default');
+        $participant = Participant::where('phone', $request->phone)->first();
         
-        return view('guest.certificate', compact('isOpen', 'eventName'));
+        if ($participant) {
+            $downloadLink = route('guest.certificate.download', ['phone' => $participant->phone]);
+            
+            return response()->json([
+                'status' => 'success',
+                'name' => $participant->name,
+                'link' => $downloadLink
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan yang didaftarkan.'
+        ]);
     }
 
     public function downloadCertificate(Request $request)
     {
-        $request->validate(['phone' => 'required|string']);
-        
-        $participant = Participant::where('phone', $request->phone)->first();
-        
-        if (!$participant) {
-            return back()->with('error', 'Nomor WhatsApp tidak ditemukan.');
+        if (!$request->phone) {
+            return redirect('/')->with('error', 'Link tidak valid atau Nomor WhatsApp tidak disertakan.');
         }
 
-        // Catatan: Ini adalah placeholder. Nanti logika cetak/intervensi gambar sertifikat 
-        // yang lama bisa dimasukkan ke dalam blok ini.
-        return back()->with('success', 'Sertifikat siap diunduh.');
+        // 1. Cek apakah portal buka?
+        $isOpen = Setting::getValue('certificate_open', '0');
+        if ($isOpen == '0') {
+            return back()->with('error', 'Maaf, portal unduh sertifikat saat ini sedang ditutup.');
+        }
+
+        // 2. Cari data peserta berdasarkan Nomor WA
+        $participant = Participant::where('phone', $request->phone)->first();
+        if (!$participant) {
+            return back()->with('error', 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan yang didaftarkan.');
+        }
+
+        // 3. Cek template sertifikat
+        $templatePath = Setting::getValue('certificate_template');
+        if (!$templatePath) {
+            return back()->with('error', 'Sertifikat belum siap. Panitia belum mengunggah template.');
+        }
+
+        $relativePath = str_replace('public/', '', $templatePath);
+
+        if (!Storage::disk('public')->exists($relativePath)) {
+            return back()->with('error', 'File template hilang dari server.');
+        }
+
+        $fullPath = Storage::disk('public')->path($relativePath);
+
+        // 4. Generate Nomor Serial
+        $serialFormat = Setting::getValue('certificate_serial_format', 'CERT/');
+        $serialNumber = $serialFormat . str_pad($participant->id, 3, '0', STR_PAD_LEFT);
+        
+        // 5. Ambil Koordinat dan Penyelarasan
+        $nameX = Setting::getValue('name_x', 500);
+        $nameY = Setting::getValue('name_y', 400);
+        $nameAlign = Setting::getValue('name_align', 'center');
+        
+        $serialX = Setting::getValue('serial_x', 500);
+        $serialY = Setting::getValue('serial_y', 700);
+        $serialAlign = Setting::getValue('serial_align', 'center');
+
+        // 6. Convert Gambar ke Base64 untuk DomPDF
+        $type = pathinfo($fullPath, PATHINFO_EXTENSION);
+        $data = file_get_contents($fullPath);
+        $base64Image = 'data:image/' . $type . ';base64,' . base64_encode($data);
+
+        // 7. Render PDF
+        $pdf = Pdf::loadView('guest.certificate_pdf', [
+            'participant' => $participant,
+            'serialNumber' => $serialNumber,
+            'base64Image' => $base64Image,
+            'nameX' => $nameX,
+            'nameY' => $nameY,
+            'nameAlign' => $nameAlign,
+            'serialX' => $serialX,
+            'serialY' => $serialY,
+            'serialAlign' => $serialAlign,
+        ])->setPaper('A4', 'landscape');
+
+        return $pdf->download('Sertifikat - ' . $participant->name . '.pdf');
     }
 }

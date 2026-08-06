@@ -15,13 +15,11 @@ class ParticipantAnswer extends Model
         'answer_value',
     ];
 
-    public function participant()
+    /**
+     * Relasi ke RegistrationField (Menghubungkan jawaban dengan label pertanyaannya)
+     */
+    public function field()
     {
-        return $this->belongsTo(Participant::class);
-    }
-
-    public function registrationField()
-    {
-        return $this->belongsTo(RegistrationField::class);
+        return $this->belongsTo(RegistrationField::class, 'registration_field_id');
     }
 }

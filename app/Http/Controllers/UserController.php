@@ -6,14 +6,15 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Auth; // <-- Tambahan untuk menghilangkan error Intelephense
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     public function index()
     {
         $users = User::all();
-        return view('admin.users', compact('users'));
+        // Sesuaikan pemanggilan view dengan path yang Om gunakan (admin.users.index)
+        return view('admin.users.index', compact('users'));
     }
 
     public function store(Request $request)
@@ -37,7 +38,6 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        // Perbaikan: Menggunakan Auth::id() standar
         if (Auth::id() === $user->id) {
             return back()->withErrors(['error' => 'Anda tidak bisa menghapus akun Anda sendiri!']);
         }

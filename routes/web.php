@@ -2,64 +2,81 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request; // <-- Ditambahkan untuk menangkap data form
+use Illuminate\Http\Request; 
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\ParticipantCrudController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\RegistrationSettingController;
-
+use App\Http\Controllers\UserController; // <-- TAMBAHKAN BARIS INI
 // --- AREA PUBLIK (PESERTA) ---
+
+// 1. Root Domain bisa diarahken ke landing page, atau default portal
 Route::get('/', function () {
-    return redirect()->route('guest.register');
+    return redirect()->route('guest.certificate.search', ['slug' => 'scarhub/2026/viii']); 
 });
 
-// Pendaftaran & Background
-Route::get('/register', [GuestController::class, 'showRegistrationForm'])->name('guest.register');
-Route::post('/register', [GuestController::class, 'submitRegistration'])->name('guest.register.submit');
-Route::get('/download-background', [GuestController::class, 'downloadBackground'])->name('guest.download.background');
+// 👇 RUTE SPESIFIK HARUS DI ATAS AGAR TIDAK TERTIMPA WILDCARD SLUG 👇
+Route::post('/sertifikat/check', [GuestController::class, 'checkParticipant'])->name('guest.certificate.check');
+// Menggunakan 'match' agar aman menerima request dari klik link (GET) maupun sisa cache lama (POST)
+Route::match(['get', 'post'], '/sertifikat/download', [GuestController::class, 'downloadCertificate'])->name('guest.certificate.download');
+// 👆 ----------------------------------------------------------- 👆
 
-// Portal Sertifikat
-Route::get('/sertifikat', [GuestController::class, 'searchCertificate'])->name('guest.certificate.search');
-Route::post('/sertifikat/download', [GuestController::class, 'downloadCertificate'])->name('guest.certificate.download');
+// 2. Link Portal Sertifikat Dinamis (Berdasarkan acara/tahun/bulan)
+Route::get('/sertifikat/{slug?}', [GuestController::class, 'searchCertificate'])
+    ->where('slug', '.*') // Mengizinkan karakter slash (/)
+    ->name('guest.certificate.search');
+    
+// 3. Link Pendaftaran Dinamis 
+Route::get('/register/{slug?}', [GuestController::class, 'showRegistrationForm'])
+    ->where('slug', '.*')
+    ->name('guest.register');
+    
+Route::post('/register/{slug?}', [GuestController::class, 'submitRegistration'])
+    ->where('slug', '.*')
+    ->name('guest.register.submit');
+    
+Route::get('/download-background', [GuestController::class, 'downloadBackground'])->name('guest.download.background');
 
 
 // --- AREA ADMIN ---
-// Asumsi menggunakan middleware auth bawaan Laravel (Breeze/UI)
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     
-    // 1. Dashboard (Galeri/Dokumentasi)
+    // 1. Dashboard 
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
 
     // 2. Kelola Sertifikat
     Route::get('/certificate', [CertificateController::class, 'index'])->name('certificate.index');
-    Route::post('/certificate/upload', [CertificateController::class, 'uploadTemplate'])->name('certificate.upload');
-    Route::post('/certificate/toggle', [CertificateController::class, 'togglePortal'])->name('certificate.toggle');
-    Route::post('/certificate/update', [CertificateController::class, 'updateSettings'])->name('certificate.update');
+    Route::post('/certificate/update', [CertificateController::class, 'updateAllSettings'])->name('certificate.update');
+    
     // 3. Data Peserta (CRUD + CSV + Truncate)
     Route::resource('participants', ParticipantCrudController::class);
+    Route::get('participants/{id}/download-cert', [ParticipantCrudController::class, 'downloadCert'])->name('participants.download-cert');
     Route::post('participants-import', [ParticipantCrudController::class, 'importCsv'])->name('participants.import');
     Route::post('participants-truncate', [ParticipantCrudController::class, 'truncate'])->name('participants.truncate');
-
+    
     // 4. Setting Registrasi (Form Dinamis & Background)
     Route::get('/registration-settings', [RegistrationSettingController::class, 'index'])->name('registration-settings.index');
     Route::post('/registration-settings/update-general', [RegistrationSettingController::class, 'updateGeneral'])->name('registration-settings.update-general');
     Route::post('/registration-settings/fields', [RegistrationSettingController::class, 'storeField'])->name('registration-settings.fields.store');
+    Route::put('/registration-settings/fields/{id}', [RegistrationSettingController::class, 'updateField'])->name('registration-settings.fields.update');
     Route::delete('/registration-settings/fields/{id}', [RegistrationSettingController::class, 'destroyField'])->name('registration-settings.fields.destroy');
+
+   // 5. Kelola Users
+    Route::get('/users', [UserController::class, 'index'])->name('users');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
 });
 
 
-// --- AUTHENTICATION ROUTES PENGGANTI ---
-// require __DIR__.'/auth.php'; // <--- Dimatikan agar tidak error
+// --- AUTHENTICATION ROUTES ---
 
-// 1. Route untuk MENAMPILKAN halaman form login
 Route::get('/login', function () {
     return view('admin.login'); 
 })->name('login')->middleware('guest');
 
-// 2. Route untuk MEMPROSES data saat tombol login ditekan
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
         'email' => ['required', 'email'],
@@ -76,11 +93,9 @@ Route::post('/login', function (Request $request) {
     ])->onlyInput('email');
 });
 
-// 3. Route untuk LOGOUT
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    
-    return redirect('/'); // Arahkan kembali ke halaman depan
+    return redirect('/'); 
 })->name('logout');

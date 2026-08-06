@@ -15,12 +15,18 @@
         
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
-            <input type="text" name="name" value="{{ old('name') }}" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
+            <input type="text" name="name" value="{{ old('name') }}" placeholder="Contoh: Muhammad Hanif" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nomor WhatsApp</label>
-            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 08123456789" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">No. WhatsApp</label>
+            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 081234567890" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
+            <span class="text-xs text-gray-500 mt-1 block">* Digunakan untuk login dan download sertifikat.</span>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Email Aktif (Opsional)</label>
+            <input type="email" name="email" value="{{ old('email') }}" placeholder="Contoh: hanif@gmail.com" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all">
         </div>
 
         <div class="pt-4 border-t border-gray-100 flex justify-end">

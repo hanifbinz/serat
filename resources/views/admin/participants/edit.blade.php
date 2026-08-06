@@ -10,17 +10,24 @@
         </a>
     </div>
 
+    <!-- Peringatan untuk Admin -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+        <p class="text-sm text-blue-700">
+            <strong>Catatan:</strong> Edit form ini difokuskan untuk memperbaiki penulisan <strong>Nama</strong> yang akan dicetak di Sertifikat dan <strong>No. WhatsApp</strong> sebagai akses peserta.
+        </p>
+    </div>
+
     <form action="{{ route('admin.participants.update', $participant->id) }}" method="POST" class="space-y-5">
         @csrf
         @method('PUT')
         
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap (Untuk Sertifikat)</label>
             <input type="text" name="name" value="{{ old('name', $participant->name) }}" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nomor WhatsApp</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">No. WhatsApp</label>
             <input type="text" name="phone" value="{{ old('phone', $participant->phone) }}" class="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-4 py-2 outline-none transition-all" required>
         </div>
 
