@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center space-x-4">
             <a href="{{ route('admin.participants.index') }}" class="text-gray-500 hover:text-gray-700">
@@ -47,4 +47,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>
