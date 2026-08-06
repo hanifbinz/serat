@@ -7,27 +7,51 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf; 
 use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Schema; // <-- Tambahan untuk sistem pengecekan kolom
 
 class ParticipantCrudController extends Controller
 {
-    // 1. TAMPILKAN DATA & FITUR SEARCH
+    // 1. TAMPILKAN DATA & FITUR SEARCH + FILTER BATCH (SLUG)
     public function index(Request $request)
     {
+        // 1. Sistem Keamanan: Cek apakah kolom 'slug' sudah ada di database
+        $hasSlugColumn = Schema::hasColumn('participants', 'slug');
+        $batches = collect();
+
+        // 2. Jika kolom slug ada, baru kita ambil data batch-nya
+        if ($hasSlugColumn) {
+            $batches = Participant::select('slug')
+                ->whereNotNull('slug')
+                ->where('slug', '!=', '')
+                ->groupBy('slug') // Menggunakan groupBy lebih aman untuk database dibanding distinct
+                ->pluck('slug');
+        }
+
         // Gunakan eager loading (with) agar query ke answers & field lebih cepat
         $query = Participant::with('answers.field');
+
+        // Tangkap request batch
+        $selectedBatch = $request->input('batch');
+
+        // Logika Filter Berdasarkan Batch (Slug) - Hanya jalankan jika kolom ada
+        if ($hasSlugColumn && !empty($selectedBatch)) {
+            $query->where('slug', $selectedBatch);
+        }
 
         // Logika Pencarian (Search)
         if ($request->filled('search')) {
             $searchTerm = $request->search;
-            $query->where('name', 'like', "%{$searchTerm}%")
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
                   ->orWhere('email', 'like', "%{$searchTerm}%")
-                  ->orWhere('phone', 'like', "%{$searchTerm}%"); // Tambah search by WA
+                  ->orWhere('phone', 'like', "%{$searchTerm}%");
+            });
         }
 
         // Tampilkan 20 data per halaman, urutkan dari yang terbaru
         $participants = $query->latest()->paginate(20);
 
-        return view('admin.participants.index', compact('participants'));
+        return view('admin.participants.index', compact('participants', 'batches', 'selectedBatch'));
     }
 
     // 2. HALAMAN TAMBAH MANUAL
@@ -42,7 +66,7 @@ class ParticipantCrudController extends Controller
         $validated = $request->validate([
             'name'  => 'required|string|max:255',
             'phone' => 'required|string|max:20|unique:participants,phone',
-            'email' => 'nullable|email|max:255', // Opsional, jaga-jaga kalau mau diisi
+            'email' => 'nullable|email|max:255', 
         ]);
 
         Participant::create($validated);
@@ -95,7 +119,7 @@ class ParticipantCrudController extends Controller
     {
         // 1. Validasi file yang diupload harus berupa CSV atau TXT
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120', // Maksimal 5MB
+            'file' => 'required|file|mimes:csv,txt|max:5120', 
         ]);
 
         $file = $request->file('file');
@@ -137,21 +161,15 @@ class ParticipantCrudController extends Controller
 
         // 4. Looping untuk membaca isi data dari baris kedua sampai habis
         while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
-            // Lewati jika barisnya kosong
             if (empty(array_filter($row))) {
                 continue;
             }
 
-            // Ambil data berdasarkan posisi kolom
             $name = isset($row[$nameIdx]) ? trim($row[$nameIdx]) : '';
             $phone = isset($row[$phoneIdx]) ? trim($row[$phoneIdx]) : '';
             $email = ($emailIdx !== false && isset($row[$emailIdx])) ? trim($row[$emailIdx]) : null;
 
-            // Pastikan nama dan WA tidak kosong
             if (!empty($name) && !empty($phone)) {
-                // Gunakan updateOrCreate:
-                // Jika No WA sudah ada di database, update namanya. 
-                // Jika No WA belum ada, buat peserta baru. (Mencegah error duplikat)
                 Participant::updateOrCreate(
                     ['phone' => $phone],
                     [
@@ -179,7 +197,6 @@ class ParticipantCrudController extends Controller
             return back()->with('error', 'Sertifikat belum siap. Anda belum mengunggah template di menu Pengaturan Sertifikat.');
         }
 
-        // Normalisasi path agar selalu menunjuk ke Storage Public Disk
         $relativePath = str_replace('public/', '', $templatePath);
         if (!Storage::disk('public')->exists($relativePath)) {
             return back()->with('error', 'File template hilang dari server. Silakan upload ulang template.');
@@ -205,7 +222,7 @@ class ParticipantCrudController extends Controller
         $data = file_get_contents($fullPath);
         $base64Image = 'data:image/' . $type . ';base64,' . base64_encode($data);
 
-        // 5. Render PDF (Pakai view Guest agar seragam dan hanya perlu edit 1 file HTML)
+        // 5. Render PDF
         $pdf = Pdf::loadView('guest.certificate_pdf', [
             'participant' => $participant,
             'serialNumber' => $serialNumber,

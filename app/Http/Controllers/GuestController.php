@@ -54,22 +54,55 @@ class GuestController extends Controller
 
     public function submitRegistration(Request $request, $slug = null)
     {
+        // 1. Validasi Data Inti
         $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:20', 
         ]);
 
-        $participant = Participant::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'email' => $request->email,
-        ]);
-
+        // 2. PENYEMPURNAAN: Validasi Data Dinamis (Mengecek is_required dari database)
         $fields = RegistrationField::all();
+        $dynamicValidationRules = [];
+        $dynamicValidationMessages = [];
+
         foreach ($fields as $field) {
-            $inputName = 'field_' . $field->id;
-            if ($request->has($inputName)) {
+            $inputName = 'dynamic_' . $field->id;
+            
+            // Jika kolom tersebut diatur WAJIB oleh admin
+            if ($field->is_required) {
+                $dynamicValidationRules[$inputName] = 'required';
+                $dynamicValidationMessages[$inputName . '.required'] = 'Kolom "' . $field->label . '" wajib diisi.';
+            }
+        }
+
+        // Jalankan validasi dinamis jika ada
+        if (!empty($dynamicValidationRules)) {
+            $request->validate($dynamicValidationRules, $dynamicValidationMessages);
+        }
+
+        // 3. Cek apakah nomor WA sudah pernah daftar di BATCH/SLUG yang SAMA
+        $cekDaftar = Participant::where('phone', $request->phone)
+                        ->where('slug', $slug)
+                        ->first();
+                        
+        if ($cekDaftar) {
+            return back()->withInput()->with('error', 'Nomor WhatsApp ini sudah terdaftar di acara ini.');
+        }
+
+        // 4. Simpan Data Inti Peserta + Slug Acara
+        $participant = Participant::create([
+            'name'  => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'slug'  => $slug, // <-- INI YANG BIKIN BATCH TERPISAH
+        ]);
+
+        // 5. Simpan Data Tambahan (Field Dinamis)
+        foreach ($fields as $field) {
+            $inputName = 'dynamic_' . $field->id;
+            
+            if ($request->has($inputName) && !empty($request->input($inputName))) {
                 ParticipantAnswer::create([
                     'participant_id' => $participant->id,
                     'registration_field_id' => $field->id,
@@ -78,12 +111,12 @@ class GuestController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Pendaftaran berhasil!');
+        return back()->with('success', 'Pendaftaran Anda berhasil! Terima kasih.');
     }
 
-    // --- FITUR DOWNLOAD BACKGROUND (DITAMBAHKAN) ---
+    // --- FITUR DOWNLOAD BACKGROUND ---
 
-   public function downloadBackground()
+    public function downloadBackground()
     {
         $rawBackground = Setting::getValue('event_background') ?? Setting::getValue('registration_background');
 
@@ -91,7 +124,6 @@ class GuestController extends Controller
             return back()->with('error', 'File background belum diunggah oleh panitia.');
         }
 
-        // Bersihkan path
         $cleanPath = str_replace(['public/', 'storage/', 'public\\', 'storage\\'], '', $rawBackground);
         $cleanPath = ltrim($cleanPath, '/\\');
 
@@ -105,13 +137,12 @@ class GuestController extends Controller
             return back()->with('error', 'File background tidak ditemukan di server.');
         }
 
-        // JURUS BARU: Paksa ekstensi dan nama file saat didownload 
-        // agar tidak mungkin tertukar dengan PDF sertifikat!
         $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
         $namaFileBaru = 'Background_Virtual_Acara.' . $extension;
 
         return response()->download($fullPath, $namaFileBaru);
     }
+
     // --- FITUR SERTIFIKAT ---
 
     public function searchCertificate($slug = null)
@@ -127,13 +158,24 @@ class GuestController extends Controller
         return view('guest.certificate_search', compact('eventName', 'isOpen', 'slug', 'marqueeText', 'eventLogo'));
     }
 
-    // Check Participant via AJAX
+    // Check Participant via AJAX (PENYEMPURNAAN MULTI-BATCH)
     public function checkParticipant(Request $request)
     {
-        $participant = Participant::where('phone', $request->phone)->first();
+        $query = Participant::where('phone', $request->phone);
+        
+        // Filter berdasarkan slug acara jika ada (agar tidak tertukar dengan acara sebelumnya)
+        if ($request->has('slug') && !empty($request->slug)) {
+            $query->where('slug', $request->slug);
+        }
+
+        $participant = $query->first();
         
         if ($participant) {
-            $downloadLink = route('guest.certificate.download', ['phone' => $participant->phone]);
+            // Sertakan parameter slug di link download
+            $downloadLink = route('guest.certificate.download', [
+                'phone' => $participant->phone, 
+                'slug' => $participant->slug
+            ]);
             
             return response()->json([
                 'status' => 'success',
@@ -144,29 +186,34 @@ class GuestController extends Controller
 
         return response()->json([
             'status' => 'error',
-            'message' => 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan yang didaftarkan.'
+            'message' => 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan acara ini.'
         ]);
     }
 
+    // Download Sertifikat (PENYEMPURNAAN MULTI-BATCH)
     public function downloadCertificate(Request $request)
     {
         if (!$request->phone) {
             return redirect('/')->with('error', 'Link tidak valid atau Nomor WhatsApp tidak disertakan.');
         }
 
-        // 1. Cek apakah portal buka?
         $isOpen = Setting::getValue('certificate_open', '0');
         if ($isOpen == '0') {
             return back()->with('error', 'Maaf, portal unduh sertifikat saat ini sedang ditutup.');
         }
 
-        // 2. Cari data peserta berdasarkan Nomor WA
-        $participant = Participant::where('phone', $request->phone)->first();
-        if (!$participant) {
-            return back()->with('error', 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan yang didaftarkan.');
+        // Cari data peserta berdasarkan Nomor WA dan SLUG acara
+        $query = Participant::where('phone', $request->phone);
+        if ($request->has('slug') && !empty($request->slug)) {
+            $query->where('slug', $request->slug);
         }
 
-        // 3. Cek template sertifikat
+        $participant = $query->first();
+        
+        if (!$participant) {
+            return back()->with('error', 'Data tidak ditemukan. Pastikan No. WhatsApp sesuai dengan acara ini.');
+        }
+
         $templatePath = Setting::getValue('certificate_template');
         if (!$templatePath) {
             return back()->with('error', 'Sertifikat belum siap. Panitia belum mengunggah template.');
@@ -180,11 +227,9 @@ class GuestController extends Controller
 
         $fullPath = Storage::disk('public')->path($relativePath);
 
-        // 4. Generate Nomor Serial
         $serialFormat = Setting::getValue('certificate_serial_format', 'CERT/');
         $serialNumber = $serialFormat . str_pad($participant->id, 3, '0', STR_PAD_LEFT);
         
-        // 5. Ambil Koordinat dan Penyelarasan
         $nameX = Setting::getValue('name_x', 500);
         $nameY = Setting::getValue('name_y', 400);
         $nameAlign = Setting::getValue('name_align', 'center');
@@ -193,12 +238,10 @@ class GuestController extends Controller
         $serialY = Setting::getValue('serial_y', 700);
         $serialAlign = Setting::getValue('serial_align', 'center');
 
-        // 6. Convert Gambar ke Base64 untuk DomPDF
         $type = pathinfo($fullPath, PATHINFO_EXTENSION);
         $data = file_get_contents($fullPath);
         $base64Image = 'data:image/' . $type . ';base64,' . base64_encode($data);
 
-        // 7. Render PDF
         $pdf = Pdf::loadView('guest.certificate_pdf', [
             'participant' => $participant,
             'serialNumber' => $serialNumber,

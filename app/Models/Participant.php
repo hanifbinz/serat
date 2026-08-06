@@ -10,7 +10,7 @@ class Participant extends Model
     use HasFactory;
 
     // Pastikan 3 kolom ini diizinkan untuk diisi
-    protected $fillable = ['name', 'email', 'phone'];
+    protected $fillable = ['name', 'email', 'phone', 'slug'];
 
     public function answers()
     {

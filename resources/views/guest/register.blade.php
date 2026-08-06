@@ -77,8 +77,15 @@
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nomor WhatsApp <span class="text-rose-500">*</span></label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 font-medium">+62</span>
-                        <input type="text" name="phone" value="{{ old('phone') }}" class="w-full bg-slate-50/50 border border-slate-300 rounded-lg pl-12 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors" placeholder="8123456789" required>
+                        <input type="tel" 
+                            name="phone" 
+                            value="{{ old('phone') }}" 
+                            class="w-full bg-slate-50/50 border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors" 
+                            placeholder="Contoh: 081122223333" 
+                            pattern="^08[0-9]{7,13}$" 
+                            title="Nomor WhatsApp harus dimulai dengan angka 08 dan hanya berisi angka (Contoh: 081122223333)"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            required>
                     </div>
                     <p class="text-[11px] text-slate-500 mt-1.5"><i class="fa-solid fa-circle-info mr-1 text-indigo-400"></i> Nomor ini dibutuhkan untuk mengunduh sertifikat nanti.</p>
                 </div>
