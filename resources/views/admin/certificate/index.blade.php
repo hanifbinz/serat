@@ -65,12 +65,25 @@
                 </div>
 
                 <div class="pt-4 border-t border-slate-100">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Format Prefix Nomor Seri</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Format Prefix Nomor Seri & Link Portal</label>
                     <div class="flex items-center">
                         <input type="text" name="certificate_serial_format" value="{{ old('certificate_serial_format', $settings['certificate_serial_format']) }}" placeholder="Contoh: SCAR/2026/VIII/" class="w-full md:w-1/2 border border-slate-300 rounded-l-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow font-mono text-indigo-700 text-sm" required>
                         <span class="bg-slate-100 border border-l-0 border-slate-300 px-4 py-2.5 rounded-r-lg text-slate-500 font-mono text-sm">063</span>
                     </div>
                     <p class="text-[11px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i> Sistem otomatis menambahkan 3 digit angka unik di belakang prefix.</p>
+                    
+                    <!-- KOTAK FITUR SALIN LINK (DIPERBAIKI) -->
+                    <div class="mt-4 p-4 bg-sky-50 border border-sky-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden">
+                        <!-- Tambahan class: flex-1 dan min-w-0 agar input tidak menyusut/terpotong css flexbox -->
+                        <div class="flex-1 min-w-0 w-full">
+                            <p class="text-[11px] font-bold text-sky-600 uppercase tracking-wider mb-1">Link Portal Sertifikat Saat Ini</p>
+                            <!-- Tambahan rtrim() untuk memastikan tidak ada dobel slash di ujung URL -->
+                            <input type="text" id="linkToCopy" readonly value="{{ url('/sertifikat/' . rtrim($settings['certificate_serial_format'], '/')) }}" class="bg-transparent border-none text-sky-900 font-mono text-sm w-full outline-none p-0 focus:ring-0 cursor-text select-all truncate" title="{{ url('/sertifikat/' . rtrim($settings['certificate_serial_format'], '/')) }}">
+                        </div>
+                        <button type="button" onclick="copyLink()" id="copyBtn" class="shrink-0 w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition-colors text-xs flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-copy"></i> Salin Link
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -168,4 +181,30 @@
         </div>
     </form>
 </div>
+
+<!-- SCRIPT UNTUK FITUR SALIN LINK -->
+<script>
+    function copyLink() {
+        var copyText = document.getElementById("linkToCopy");
+        var copyBtn = document.getElementById("copyBtn");
+        
+        // Salin teks ke clipboard
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // Untuk perangkat mobile
+        navigator.clipboard.writeText(copyText.value);
+        
+        // Ubah tampilan tombol sesaat
+        var originalHTML = copyBtn.innerHTML;
+        var originalClasses = copyBtn.className;
+        
+        copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
+        copyBtn.className = 'shrink-0 w-full sm:w-auto bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm text-xs flex items-center justify-center gap-2 transition-colors';
+        
+        // Kembalikan ke tampilan semula setelah 2 detik
+        setTimeout(function() {
+            copyBtn.innerHTML = originalHTML;
+            copyBtn.className = originalClasses;
+        }, 2000);
+    }
+</script>
 @endsection

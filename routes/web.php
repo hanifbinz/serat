@@ -3,16 +3,28 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request; 
+use App\Models\Setting;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\ParticipantCrudController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\RegistrationSettingController;
-use App\Http\Controllers\UserController; // <-- TAMBAHKAN BARIS INI
+use App\Http\Controllers\UserController;
+
 // --- AREA PUBLIK (PESERTA) ---
 
-// 1. Root Domain bisa diarahken ke landing page, atau default portal
-Route::get('/', function () {
-    return redirect()->route('guest.certificate.search', ['slug' => 'scarhub/2026/viii']); 
+// 1. Root Domain & Smart Redirect
+Route::get('/', function (Request $request) {
+    // Ambil format prefix dari Pengaturan Sertifikat
+    $activeSlug = Setting::getValue('certificate_serial_format', 'SCARHub/2026/IX/');
+
+    // Misi 1: Cek jika pengunjung menggunakan domain 'han'
+    if ($request->getHost() === 'han.majuterus.my.id') {
+        // Arahkan paksa ke domain sertifikat, disambung dengan prefix/slug dinamis
+        return redirect()->away('https://sertifikat.majuterus.my.id/sertifikat/' . $activeSlug);
+    }
+
+    // Misi 2: Jika pengunjung sudah menggunakan domain 'sertifikat', langsung redirect ke rute
+    return redirect()->route('guest.certificate.search', ['slug' => $activeSlug]); 
 });
 
 // 👇 RUTE SPESIFIK HARUS DI ATAS AGAR TIDAK TERTIMPA WILDCARD SLUG 👇
@@ -63,7 +75,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/registration-settings/fields/{id}', [RegistrationSettingController::class, 'updateField'])->name('registration-settings.fields.update');
     Route::delete('/registration-settings/fields/{id}', [RegistrationSettingController::class, 'destroyField'])->name('registration-settings.fields.destroy');
 
-   // 5. Kelola Users
+    // 5. Kelola Users
     Route::get('/users', [UserController::class, 'index'])->name('users');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
